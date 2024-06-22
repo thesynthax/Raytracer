@@ -1,0 +1,14 @@
+#!/bin/sh
+
+if test -d build; then
+  cd build
+  cmake ..
+  cmake --build .
+  ./raytracer
+else
+  mkdir build
+  cd build
+  cmake ..
+  cmake --build .
+  ./raytracer
+fi

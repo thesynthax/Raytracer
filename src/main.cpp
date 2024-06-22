@@ -8,8 +8,8 @@
 const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
 
-const std::string VERT_PATH = "/home/thesynthax/projects/cpp/raytracer-reloaded/src/vertex.glsl";
-const std::string FRAG_PATH = "/home/thesynthax/projects/cpp/raytracer-reloaded/src/fragment.glsl";
+const std::string VERT_PATH = "/home/thesynthax/projects/cpp/raytracer/src/vertex.glsl";
+const std::string FRAG_PATH = "/home/thesynthax/projects/cpp/raytracer/src/fragment.glsl";
 
 std::string readFile(const std::string& filePath) {
   std::ifstream shaderFile(filePath);
