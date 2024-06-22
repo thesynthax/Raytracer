@@ -1,15 +1,7 @@
 #version 460 core
-attribute vec3 aPos;
-attribute vec2 aTexCoord;
 
-varying vec2 pos;
+layout (location = 0) in vec3 aPos;
 
-void main()
-{
-    pos = aTexCoord;
-
-    vec4 position = vec4(aPos, 1.0);
-    position.xy = position.xy * 2.0 - 1.0;
-
-    gl_Position = position; 
+void main() {
+  gl_Position = vec4(aPos, 1.0f); // Set position in clip space
 }

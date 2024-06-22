@@ -13,3 +13,8 @@ target_link_libraries(raytracer_reloaded
     glfw 
     OpenGL::GL
 )
+
+set_target_properties(raytracer_reloaded PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+)
