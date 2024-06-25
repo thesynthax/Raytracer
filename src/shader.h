@@ -20,6 +20,7 @@ public:
     void setBool(const char* name, bool value) const;
     void setInt(const char* name, int value) const;
     void setFloat(const char* name, float value) const;
+    void setVec2(const char* name, float v1, float v2) const;
     bool getBool(const char* name) const;
     int getInt(const char* name) const;
     float getFloat(const char* name) const;

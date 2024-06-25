@@ -56,6 +56,9 @@ void Shader::setInt(const char* name, int value) const {
 void Shader::setFloat(const char* name, float value) const { 
     glUniform1f(glGetUniformLocation(ID, name), value); 
 }
+void Shader::setVec2(const char* name, float v1, float v2) const { 
+    glUniform2f(glGetUniformLocation(ID, name), v1, v2); 
+}
 bool Shader::getBool(const char* name) const {
     int *v;
     glGetUniformiv(ID, glGetUniformLocation(ID, name), v);
