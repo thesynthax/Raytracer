@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <string>
+#include "scene.h"
 
 const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
@@ -10,20 +11,8 @@ const unsigned int SCR_HEIGHT = 720;
 const std::string VERT_PATH = "/home/thesynthax/projects/cpp/raytracer/src/vertex.glsl";
 const std::string FRAG_PATH = "/home/thesynthax/projects/cpp/raytracer/src/fragment.glsl";
 
-GLFWcursorposfun cursorPosCallback(GLFWwindow* window, double mouseX, double mouseY) {
-    glfwGetCursorPos(window, &mouseX, &mouseY);
-
-        /*
-		if (glfwGetKey(window, GLFW_KEY_E)) {
-			Scene::mousePlace(mouseX, mouseY, SCR_WIDTH, SCR_HEIGHT, Scene::cameraPosition, rotationMatrix);
-		}
-		else {
-			Scene::selectHovered(mouseX, mouseY, SCR_WIDTH, SCR_HEIGHT, Scene::cameraPosition, rotationMatrix);
-		}*/
-    return 0;
-}
-
 int main() {
+
     //Window Initialization
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -36,7 +25,6 @@ int main() {
 		glfwTerminate();
 		return -1;
 	}
-    //glfwSetCursorPosCallback(window, cursorPosCallback);
     double mouseX, mouseY;
 	glfwMakeContextCurrent(window);
 	gladLoadGL();
@@ -70,14 +58,16 @@ int main() {
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-
         shader.use();
 
-        float timeValue = glfwGetTime();
-        shader.setFloat("aspectRatio", (float)SCR_WIDTH/(float)SCR_HEIGHT);
-        shader.setFloat("time", timeValue);
+        initializeUniforms(shader);
+        shader.setFloat("u_aspectRatio", (float)SCR_WIDTH/(float)SCR_HEIGHT);
+        
+        //float timeValue = glfwGetTime();
+        //shader.setFloat("time", timeValue);
+        
         glfwGetCursorPos(window, &mouseX, &mouseY);
-        shader.setVec2("mousePos", (float)(mouseX/SCR_WIDTH), 1.0f - (float)(mouseY/SCR_HEIGHT));
+        shader.setVec2("u_mousePos", (float)(mouseX/SCR_WIDTH), 1.0f - (float)(mouseY/SCR_HEIGHT));
 
 		glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);

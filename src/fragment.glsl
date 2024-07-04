@@ -1,39 +1,73 @@
 #version 460 core
 
+#define PI 3.14159265359
+#define EPSILON 0.0001
+
 in vec2 uv;
 
 out vec4 FragColor;
 
-uniform float aspectRatio;
-uniform float time;
-uniform vec2 mousePos;
+uniform float u_aspectRatio;
+uniform vec2 u_mousePos;
+uniform float u_fov;
 
-float sdSphere(vec3 p, float r) {
-    return length(p) - r;
+uniform vec3 u_initCamPos;
+uniform vec3 u_initCamDir;
+uniform vec3 u_upDir;
+//uniform Sphere spheres[50];
+
+float deg2rad(float deg) {
+    float rad = deg * PI / 180.0f;
+    return rad;
 }
 
-float sdGround(vec3 p) {
-    return p.y;
+struct Camera {
+    vec3 position;
+    vec3 llc;
+    vec3 horizontal;
+    vec3 vertical;
+};
+
+Camera camera(float fov, float aspectRatio, vec3 lookFrom, vec3 lookAt, vec3 vup) {
+    float theta = deg2rad(fov);
+    float h = tan(theta/2.0f);
+    float viewportHeight = h * 2.0f;
+    float viewportWidth = viewportHeight * aspectRatio;
+
+    vec3 w = normalize(lookFrom - lookAt);
+    vec3 u = normalize(cross(vup, w));
+    vec3 v = cross(w, u);
+
+    Camera cam;
+    cam.position = lookFrom;
+    cam.horizontal = u * viewportWidth;
+    cam.vertical = v * viewportHeight;
+    cam.llc = cam.position - cam.horizontal / 2.0f - cam.vertical / 2.0f - w;
+    return cam;
 }
 
-float sdBox(vec3 p, vec3 b) {
-    vec3 q = abs(p) - b;
-    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
-}
+struct Ray {
+    vec3 origin;
+    vec3 direction;
+};
 
-float smoothMin(float a, float b, float k) {
-    float h = max(k - abs(a-b), 0.0) / k;
-    return min(a, b) - h*h*h*k*(1.0f/6.0f);
-}
+struct HitInfo {
+    bool hit;
+    float distance;
+    vec3 hitPoint;
+    vec3 normal;
+    //Material mat;
+};
 
-float map(vec3 p) {
-    vec3 spherePos = vec3(sin(time) * 4.f, 0, 0);
-    float radius = 1.0f;
-    float sphere = sdSphere(p - spherePos, radius);
-    float box = sdBox(p, vec3(0.7f));
-    float ground = sdGround(p + 0.75f);
-    return min(ground, smoothMin(sphere, box, 1.));
-}
+struct Material {
+    vec3 color;
+};
+
+struct Sphere {
+    vec3 center;
+    float radius;
+    Material mat;
+};
 
 mat2 rot2D (float angle) {
     float s = sin(angle);
@@ -42,38 +76,74 @@ mat2 rot2D (float angle) {
     return mat2(c, -s, s, c);
 }
 
-void main() {
-    vec2 n = vec2(uv.x * aspectRatio, uv.y);
-    vec2 m = vec2(mousePos.x * aspectRatio, mousePos.y); 
+float scalarTriple(vec3 a, vec3 b, vec3 c) {
+    return dot(cross(a, b), c);
+}
 
-    // Initialization
-    vec3 ro = vec3(0, 0, -3);         // ray origin
-    vec3 rd = normalize(vec3(n, 1)); // ray direction
-    vec3 col = vec3(0);               // final pixel color
+HitInfo sphereIntersection(Ray ray, vec3 center, float radius) {
+    HitInfo hitInfo = {false, 0, vec3(0), vec3(0)};
 
-    float t = 0.; // total distance travelled
+    /*
+        * if (P-C).(P-C)=r^2 where P=A+tB vector and C=center
+        * so expanding,
+        * t^2(B.B) + 2tB.(A-C) + (A-C).(A-C) - r^2 = 0
+        * so if D > 0, then the ray has hit the sphere    
+    */
+    vec3 oc = ray.origin - center;
+    float a = dot(ray.direction, ray.direction);
+    float b = 2.0f * dot(ray.direction, oc);
+    float c = dot(oc, oc) - radius*radius;
 
-    //Camera Rotation
-    ro.y = 1.0f;
-    ro.yz *= rot2D(-m.y);
-    rd.yz *= rot2D(-m.y);
-    ro.xz *= rot2D(-m.x);
-    rd.xz *= rot2D(-m.x);
+    float disc = b*b - 4*a*c;
 
-    // Raymarching
-    for (int i = 0; i < 80; i++) {
-        vec3 p = ro + rd * t;     // position along the ray
+    if (disc >= 0.0f) {
+        float dist = ((-b - sqrt(disc)) / (2.0f * a)) > 0.0f ? ((-b - sqrt(disc)) / (2.0f * a)) : ((-b + sqrt(disc)) / (2.0f * a));
+        hitInfo.hit = true;
+        hitInfo.distance = dist;
+        hitInfo.hitPoint = ray.origin + ray.direction * dist;
+        hitInfo.normal = normalize(hitInfo.hitPoint - center);
+    }
+    return hitInfo;
+}
+/*
+HitInfo rayCollision(Ray ray) {
+    HitInfo closest = {false, (1./0.), vec3(0), vec3(0)};
 
-        float d = map(p);         // current distance to the scene
+    for (int i = 0; i < spheres.length(); i++) {
+        Sphere sphere = spheres[i];
+        HitInfo hitInfo = sphereIntersection(ray, sphere.center, sphere.radius);
 
-        t += d;                   // "march" the ray
-
-        if (d < .001) break;      // early stop if close enough
-        if (t > 100.) break;      // early stop if too far
+        if (hitInfo.hit && hitInfo.distance < closest.distance) {
+            closest = hitInfo;
+            closest.mat = sphere.mat;
+        }
     }
 
+    return closest;
+}*/
+
+void main() {
+    
+    vec2 n = vec2(uv.x * u_aspectRatio, uv.y);
+    vec2 m = vec2(u_mousePos.x * u_aspectRatio, u_mousePos.y); 
+
+    // Initialization
+    Camera cam = camera(u_fov, u_aspectRatio, u_initCamPos, u_initCamDir, u_upDir);
+
+    Ray ray;
+    ray.origin = cam.position;
+    vec3 rayTarget = vec3(n, 0.0f);
+    ray.direction = normalize(rayTarget - ray.origin);
+
+    //Camera Rotation
+    //ray.origin.yz *= rot2D(-m.y);
+    //ray.direction.yz *= rot2D(-m.y);
+    //ray.origin.xz *= rot2D(-m.x);
+    //ray.direction.xz *= rot2D(-m.x);
+
     // Coloring
-    col = vec3(t * .2);           // color based on distance
+    bool sphereHit = sphereIntersection(ray, vec3(0, 0, 3.0f), 1).hit;
+    vec3 col = sphereHit ? vec3(1) : vec3(0);
 
     FragColor = vec4(col, 1);
 }

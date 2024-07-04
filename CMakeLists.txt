@@ -7,6 +7,7 @@ find_package(OpenGL REQUIRED)
 add_executable(raytracer 
     src/main.cpp
     src/shader.cpp
+    src/scene.cpp
     src/glad.c
 )
 
