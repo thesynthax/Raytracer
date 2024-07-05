@@ -53,14 +53,15 @@ int main() {
 
     //Shader Initialization and main code loop
     Shader shader(VERT_PATH, FRAG_PATH);
+    shader.use();
+    initializeUniforms(shader);
+
 	while (!glfwWindowShouldClose(window))
 	{
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-        shader.use();
-
-        initializeUniforms(shader);
+        shader.setVec2("u_screenPixels", SCR_WIDTH, SCR_HEIGHT);
         shader.setFloat("u_aspectRatio", (float)SCR_WIDTH/(float)SCR_HEIGHT);
         
         //float timeValue = glfwGetTime();
