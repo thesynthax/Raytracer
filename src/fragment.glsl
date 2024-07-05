@@ -9,6 +9,10 @@ in vec2 uv;
 
 out vec4 FragColor;
 
+uniform float INFINITY;
+
+uniform float u_time;
+
 uniform vec2 u_screenPixels;
 uniform float u_aspectRatio;
 uniform vec2 u_mousePos;
@@ -56,7 +60,7 @@ struct Ray {
 struct Material {
     vec3 color;
     vec3 emission;
-
+    float emissionStrength;
 };
 struct HitInfo {
     bool hit;
@@ -130,7 +134,7 @@ float scalarTriple(vec3 a, vec3 b, vec3 c) {
 }
 
 HitInfo sphereIntersection(Ray ray, Sphere sphere) {
-    HitInfo hitInfo = {false, 0, vec3(0), vec3(0), {vec3(0), vec3(0)}};
+    HitInfo hitInfo = {false, 0, vec3(0), vec3(0), {vec3(0), vec3(0), 0}};
 
     /*
         * if (P-C).(P-C)=r^2 where P=A+tB vector and C=center
@@ -145,14 +149,22 @@ HitInfo sphereIntersection(Ray ray, Sphere sphere) {
 
     float disc = b*b - 4*a*c;
 
-    if (disc >= 0.0f) {
-        float dist = ((-b - sqrt(disc)) / (2.0f * a)) > 0.0f ? ((-b - sqrt(disc)) / (2.0f * a)) : ((-b + sqrt(disc)) / (2.0f * a));
-        hitInfo.hit = true;
-        hitInfo.distance = dist;
-        hitInfo.hitPoint = ray.origin + ray.direction * dist;
-        hitInfo.normal = normalize(hitInfo.hitPoint - sphere.center);
-        hitInfo.mat = sphere.mat;
+    if (disc < 0.0f) 
+        return hitInfo;
+
+    //float dist = ((-b - sqrt(disc)) / (2.0f * a)) > 0.0f ? ((-b - sqrt(disc)) / (2.0f * a)) : ((-b + sqrt(disc)) / (2.0f * a));
+    float dist = (-b - sqrt(disc)) / (2.0f * a);
+    if (dist <= 0.001 || dist >= INFINITY) {
+        dist = (-b - sqrt(disc)) / (2.0f * a);
+        if (dist <= 0.001 || dist >= INFINITY) 
+            return hitInfo;
     }
+
+    hitInfo.hit = true;
+    hitInfo.distance = dist;
+    hitInfo.hitPoint = ray.origin + ray.direction * dist;
+    hitInfo.normal = normalize(hitInfo.hitPoint - sphere.center);
+    hitInfo.mat = sphere.mat;
     return hitInfo;
 }
 
@@ -169,11 +181,11 @@ vec3 GetEnvironmentLight(vec3 dir)
     //float sun = pow(max(0, dot(dir, _WorldSpaceLightPos0.xyz)), SunFocus) * SunIntensity;
     // Combine ground, sky, and sun
     vec3 composite = lerpVec(GroundColour, skyGradient, groundToSkyT);// + sun * SunColour * (groundToSkyT >= 1);
-    return composite;
+    return composite / 3;
 }
 
 HitInfo rayCollision(Ray ray) {
-    HitInfo closest = {false, (100000), vec3(0), vec3(0), {vec3(0), vec3(0)}};
+    HitInfo closest = {false, (100000), vec3(0), vec3(0), {vec3(0), vec3(0), 0}};
 
     for (int i = 0; i < u_spheres.length(); i++) {
         Sphere sphere = u_spheres[i];
@@ -198,11 +210,11 @@ vec3 computeRayColor(Ray ray, inout uint seed) {
             ray.origin = hitInfo.hitPoint;
             ray.direction = hitInfo.normal + randomPointInSphere(seed);
 
-            vec3 emittedLight = hitInfo.mat.emission;
+            vec3 emittedLight = hitInfo.mat.emission * hitInfo.mat.emissionStrength;
             rayColor *= hitInfo.mat.color;
             incomingLight += emittedLight * rayColor;
         } else {
-            //incomingLight += GetEnvironmentLight(ray.direction) * rayColor;
+            incomingLight += GetEnvironmentLight(ray.direction) * rayColor;
             break;
         }
     }
@@ -224,12 +236,10 @@ void main() {
     ray.direction = normalize(rayTarget - ray.origin);
 
     //Camera Rotation
-    /*
     ray.origin.yz *= rot2D(-m.y);
     ray.direction.yz *= rot2D(-m.y);
     ray.origin.xz *= rot2D(-m.x);
     ray.direction.xz *= rot2D(-m.x);
-    */
 
     //Taking current pixel as seed for RNG
     vec2 pixelCoord = uv * u_screenPixels;
