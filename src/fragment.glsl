@@ -22,6 +22,8 @@ uniform vec3 u_initCamPos;
 uniform vec3 u_initCamDir;
 uniform vec3 u_upDir;
 
+bool oldRayMethod = false;
+
 float deg2rad(float deg) {
     float rad = deg * PI / 180.0f;
     return rad;
@@ -56,6 +58,13 @@ struct Ray {
     vec3 origin;
     vec3 direction;
 };
+
+Ray getRay(Camera cam, float u, float v) {
+    Ray ray;
+    ray.origin = cam.position;
+    ray.direction = cam.llc + cam.horizontal * u + cam.vertical * v - cam.position;
+    return ray;
+}
 
 struct Material {
     vec3 color;
@@ -223,23 +232,31 @@ vec3 computeRayColor(Ray ray, inout uint seed) {
 }
 
 void main() {
-    
+    vec2 normalized_uv = uv / 2.0f + 0.5f; 
     vec2 n = vec2(uv.x * u_aspectRatio, uv.y);
+    vec2 normalized_mousePos = u_mousePos / 2.0f + 0.5f;
     vec2 m = vec2(u_mousePos.x * u_aspectRatio, u_mousePos.y); 
 
     // Initialization
     Camera cam = camera(u_fov, u_aspectRatio, u_initCamPos, u_initCamDir, u_upDir);
 
     Ray ray;
-    ray.origin = cam.position;
-    vec3 rayTarget = vec3(n, 0.0f);
-    ray.direction = normalize(rayTarget - ray.origin);
-
-    //Camera Rotation
-    ray.origin.yz *= rot2D(-m.y);
-    ray.direction.yz *= rot2D(-m.y);
-    ray.origin.xz *= rot2D(-m.x);
-    ray.direction.xz *= rot2D(-m.x);
+    if (oldRayMethod) { 
+        ray.origin = cam.position;
+        vec3 rayTarget = vec3(n, 0.0f);
+        ray.direction = normalize(rayTarget - ray.origin);
+        ray.origin.yz *= rot2D(-m.y);
+        ray.direction.yz *= rot2D(-m.y);
+        ray.origin.xz *= rot2D(-m.x);
+        ray.direction.xz *= rot2D(-m.x);
+    }
+    else {
+        ray = getRay(cam, normalized_uv.x, normalized_uv.y);
+        ray.origin.yz *= rot2D(-m.y);
+        ray.direction.yz *= rot2D(-m.y);
+        ray.origin.xz *= rot2D(m.x);
+        ray.direction.xz *= rot2D(m.x);
+    }
 
     //Taking current pixel as seed for RNG
     vec2 pixelCoord = uv * u_screenPixels;
@@ -247,8 +264,6 @@ void main() {
     uint seed = pixelIndex;
 
     // Coloring
-    //HitInfo sphereHit = rayCollision(ray);
     vec3 col = computeRayColor(ray, seed); 
     FragColor = vec4(col, 1); 
-    //FragColor = sphereHit.hit ? vec4(sphereHit.mat.color, 1) : vec4(0, 0, 0, 1);
 }
