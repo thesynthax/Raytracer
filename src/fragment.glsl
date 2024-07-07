@@ -4,6 +4,7 @@
 #define EPSILON 0.0001
 #define MAX_OBJECT_COUNT 100
 #define MAX_BOUNCE_LIMIT 20
+#define RAYS_PER_PIXEL 5
 
 in vec2 uv;
 
@@ -22,7 +23,7 @@ uniform vec3 u_initCamPos;
 uniform vec3 u_initCamDir;
 uniform vec3 u_upDir;
 
-bool oldRayMethod = false;
+bool useMouse = false;
 
 float deg2rad(float deg) {
     float rad = deg * PI / 180.0f;
@@ -67,10 +68,13 @@ Ray getRay(Camera cam, float u, float v) {
 }
 
 struct Material {
-    vec3 color;
-    vec3 emission;
-    float emissionStrength;
+    int type; //0 = lambertian, 1 = metal, 2 = dielectric, 3 = emissive
+    vec3 color; //for type = 0,1,3
+    float fuzz; //for type = 1
+    float refIndex; //for type = 2
+    float emissionStrength; //for type = 3
 };
+
 struct HitInfo {
     bool hit;
     float distance;
@@ -83,6 +87,12 @@ struct Sphere {
     vec3 center;
     float radius;
     Material mat;
+};
+
+struct Light {
+    int type; //0 = point, 1 = directional, 2 = area
+    vec3 lightColor;
+    float lightStrength;
 };
 
 uniform Sphere u_spheres[MAX_OBJECT_COUNT];
@@ -142,8 +152,14 @@ float scalarTriple(vec3 a, vec3 b, vec3 c) {
     return dot(cross(a, b), c);
 }
 
+float schlick(float cos, float refIndex) {
+    float r0 = (1.0f - refIndex) / (1.0f + refIndex);
+    r0 *= r0;
+    return r0 + (1.0f - r0) * pow(1.0f - cos, 5);
+}
+
 HitInfo sphereIntersection(Ray ray, Sphere sphere) {
-    HitInfo hitInfo = {false, 0, vec3(0), vec3(0), {vec3(0), vec3(0), 0}};
+    HitInfo hitInfo = {false, 0, vec3(0), vec3(0), {0, vec3(0), 0, 0, 0}};
 
     /*
         * if (P-C).(P-C)=r^2 where P=A+tB vector and C=center
@@ -194,7 +210,7 @@ vec3 GetEnvironmentLight(vec3 dir)
 }
 
 HitInfo rayCollision(Ray ray) {
-    HitInfo closest = {false, (100000), vec3(0), vec3(0), {vec3(0), vec3(0), 0}};
+    HitInfo closest = {false, (INFINITY), vec3(0), vec3(0), {0, vec3(0), 0, 0, 0}};
 
     for (int i = 0; i < u_spheres.length(); i++) {
         Sphere sphere = u_spheres[i];
@@ -212,15 +228,47 @@ vec3 computeRayColor(Ray ray, inout uint seed) {
     vec3 incomingLight = vec3(0);
     vec3 rayColor = vec3(1);
 
-    for (int i = 0; i <= 20; i++) {
+    for (int i = 0; i <= MAX_BOUNCE_LIMIT; i++) {
         HitInfo hitInfo = rayCollision(ray);
 
         if (hitInfo.hit) {
             ray.origin = hitInfo.hitPoint;
-            ray.direction = hitInfo.normal + randomPointInSphere(seed);
+            vec3 emittedLight = vec3(0);
+            switch (hitInfo.mat.type) {
+                case (0):
+                    ray.direction = hitInfo.normal + randomPointInSphere(seed);
+                    break;
+                case (1):
+                    float f = clamp(hitInfo.mat.fuzz, 0, 1);
+                    vec3 reflected = reflect(normalize(ray.direction), hitInfo.normal);
+                    ray.direction = reflected + randomPointInSphere(seed) * f;
+                    break;
+                case (2):
+                    vec3 outwardNormal = vec3(0);
+                    float ni_nt = 0;
+                    
+                    if (dot(ray.direction, hitInfo.normal) < 0) {
+                        outwardNormal = hitInfo.normal;
+                        ni_nt = 1.0f / hitInfo.mat.refIndex;
+                    } else {
+                        outwardNormal = -hitInfo.normal;
+                        ni_nt = hitInfo.mat.refIndex;
+                    }
 
-            vec3 emittedLight = hitInfo.mat.emission * hitInfo.mat.emissionStrength;
-            rayColor *= hitInfo.mat.color;
+                    float cos = min(dot(-normalize(ray.direction), hitInfo.normal), 1.0f);
+                    float sin = sqrt(1.0f - cos*cos);
+                    bool canRefract = ni_nt * sin < 1;
+
+                    ray.direction = canRefract ? refract(normalize(ray.direction), outwardNormal, ni_nt) : reflect(normalize(ray.direction), outwardNormal);
+                    break;
+                case (3):
+                    ray.direction = hitInfo.normal + randomPointInSphere(seed);
+                    emittedLight = hitInfo.mat.color * hitInfo.mat.emissionStrength;
+                    break;
+            }
+
+            float lightStrength = dot(hitInfo.normal, ray.direction);
+            rayColor *= hitInfo.mat.color * lightStrength;
             incomingLight += emittedLight * rayColor;
         } else {
             incomingLight += GetEnvironmentLight(ray.direction) * rayColor;
@@ -234,24 +282,14 @@ vec3 computeRayColor(Ray ray, inout uint seed) {
 void main() {
     vec2 normalized_uv = uv / 2.0f + 0.5f; 
     vec2 n = vec2(uv.x * u_aspectRatio, uv.y);
-    vec2 normalized_mousePos = u_mousePos / 2.0f + 0.5f;
     vec2 m = vec2(u_mousePos.x * u_aspectRatio, u_mousePos.y); 
 
     // Initialization
     Camera cam = camera(u_fov, u_aspectRatio, u_initCamPos, u_initCamDir, u_upDir);
 
     Ray ray;
-    if (oldRayMethod) { 
-        ray.origin = cam.position;
-        vec3 rayTarget = vec3(n, 0.0f);
-        ray.direction = normalize(rayTarget - ray.origin);
-        ray.origin.yz *= rot2D(-m.y);
-        ray.direction.yz *= rot2D(-m.y);
-        ray.origin.xz *= rot2D(-m.x);
-        ray.direction.xz *= rot2D(-m.x);
-    }
-    else {
-        ray = getRay(cam, normalized_uv.x, normalized_uv.y);
+    ray = getRay(cam, normalized_uv.x, normalized_uv.y);
+    if (useMouse) {
         ray.origin.yz *= rot2D(-m.y);
         ray.direction.yz *= rot2D(-m.y);
         ray.origin.xz *= rot2D(m.x);
@@ -264,6 +302,11 @@ void main() {
     uint seed = pixelIndex;
 
     // Coloring
-    vec3 col = computeRayColor(ray, seed); 
+    vec3 totalIncomingLight = vec3(0);
+    for (int i = 0; i < RAYS_PER_PIXEL; i++) {
+        totalIncomingLight += computeRayColor(ray, seed);
+    }
+
+    vec3 col = totalIncomingLight / RAYS_PER_PIXEL;
     FragColor = vec4(col, 1); 
 }
