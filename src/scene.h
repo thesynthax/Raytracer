@@ -6,4 +6,4 @@
 #include <GLFW/glfw3.h>
 
 void initializeUniforms(Shader shader);
-void updateUniforms(Shader shader);
+void updateUniforms(Shader shader, GLFWwindow* window);

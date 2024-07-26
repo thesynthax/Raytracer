@@ -61,7 +61,7 @@ int main() {
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-        updateUniforms(shader);
+        updateUniforms(shader, window);
 
         shader.setVec2("u_screenPixels", SCR_WIDTH, SCR_HEIGHT);
         shader.setFloat("u_aspectRatio", (float)SCR_WIDTH/(float)SCR_HEIGHT);

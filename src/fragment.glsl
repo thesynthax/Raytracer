@@ -3,8 +3,11 @@
 #define PI 3.14159265359
 #define EPSILON 0.0001
 #define MAX_OBJECT_COUNT 100
+#define MAX_LIGHT_COUNT 10
 #define MAX_BOUNCE_LIMIT 20
 #define RAYS_PER_PIXEL 5
+#define SHADOW_RAYS 20
+#define LIGHT_RADIUS 0.1
 
 in vec2 uv;
 
@@ -89,13 +92,37 @@ struct Sphere {
     Material mat;
 };
 
+struct Plane {
+    vec3 center;
+    vec3 normal;
+    float width;
+    float height;
+    Material mat;
+};
+
+/*
+struct Box {
+    vec3 min;
+    vec3 max;
+
+};
+
+struct Object {
+    int type; //0 = any, 1 = sphere, 2 = box, 3 = quad
+};
+*/
+
 struct Light {
-    int type; //0 = point, 1 = directional, 2 = area
-    vec3 lightColor;
-    float lightStrength;
+    int type; //0 = point, 1 = directional
+    vec3 pos; //for type = 0
+    vec3 dir; //for type = 1
+    vec3 color;
+    float maxIntensity; //inverse square law for type = 0, constant for type = 1
 };
 
 uniform Sphere u_spheres[MAX_OBJECT_COUNT];
+uniform Plane u_planes[MAX_OBJECT_COUNT];
+uniform Light u_lights[MAX_LIGHT_COUNT];
 
 uint nextRandom(inout uint state)
 {
@@ -130,6 +157,10 @@ vec2 randomPointInCircle(inout uint rngState)
     float angle = randomValue(rngState) * 2 * PI;
     vec2 pointOnCircle = vec2(cos(angle), sin(angle));
     return pointOnCircle * sqrt(randomValue(rngState));
+}
+
+float rand(vec2 co){
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
 mat2 rot2D (float angle) {
@@ -193,6 +224,13 @@ HitInfo sphereIntersection(Ray ray, Sphere sphere) {
     return hitInfo;
 }
 
+HitInfo planeIntersection (Ray ray, Plane plane) {
+    HitInfo hitInfo = {false, 0, vec3(0), vec3(0), {0, vec3(0), 0, 0, 0}};
+
+
+    return hitInfo;
+}
+
 vec3 GetEnvironmentLight(vec3 dir)
 {
     //if (UseSky == 0) return 0;
@@ -206,7 +244,7 @@ vec3 GetEnvironmentLight(vec3 dir)
     //float sun = pow(max(0, dot(dir, _WorldSpaceLightPos0.xyz)), SunFocus) * SunIntensity;
     // Combine ground, sky, and sun
     vec3 composite = lerpVec(GroundColour, skyGradient, groundToSkyT);// + sun * SunColour * (groundToSkyT >= 1);
-    return composite / 3;
+    return composite / 1.3f;
 }
 
 HitInfo rayCollision(Ray ray) {
@@ -221,7 +259,73 @@ HitInfo rayCollision(Ray ray) {
         }
     }
 
+    for (int i = 0; i < u_planes.length(); i++) {
+        Plane plane = u_planes[i];
+        HitInfo hitInfo = planeIntersection(ray, plane);
+
+        if (hitInfo.hit && hitInfo.distance < closest.distance) {
+            closest = hitInfo;
+        }
+    }
+
     return closest;
+}
+
+float calculatePointLightReach(Light light, float distance) {
+    float cutoffIntensity = 0.01;
+    
+    //float intensity = light.maxIntensity / pow((distance + sqrt(light.maxIntensity)), 2);
+    float reach = sqrt(light.maxIntensity / cutoffIntensity) - sqrt(light.maxIntensity);
+
+    return reach;
+}
+
+vec3 computeDirectIllumination(Ray ray, HitInfo hitInfo, uint seed) {
+    vec3 illumination = vec3(0);
+
+    for (int i = 0; i < u_lights.length(); i++) {
+        Light light = u_lights[i];
+        
+        switch(light.type) {
+            case(0):
+                float lightDistance = length(light.pos - hitInfo.hitPoint);
+                if (lightDistance > calculatePointLightReach(light, lightDistance)) continue;
+
+                float diffuse = clamp(dot(hitInfo.normal, normalize(light.pos - hitInfo.hitPoint)), 0, 1);
+
+                if (diffuse > EPSILON || hitInfo.mat.fuzz < 1.0f) {
+                    int shadowRays = int(SHADOW_RAYS * LIGHT_RADIUS * LIGHT_RADIUS / (lightDistance * lightDistance) + 1);
+                    int shadowRayHits = 0;
+
+                    for (int i = 0; i < shadowRays; i++) {
+                        vec3 lightSurfacePoint = light.pos + normalize(vec3(rand(vec2(i+seed, 1)+hitInfo.hitPoint.xy), rand(vec2(i+seed, 2)+hitInfo.hitPoint.yz), rand(vec2(i+seed, 3)+hitInfo.hitPoint.xz))) * LIGHT_RADIUS;
+                        vec3 lightDir = normalize(lightSurfacePoint - hitInfo.hitPoint);
+                        vec3 rayOrigin = hitInfo.hitPoint + lightDir * EPSILON * 2.0f;
+                        float maxRayLength = length(lightSurfacePoint - rayOrigin);
+                        Ray shadowRay = Ray(rayOrigin, lightDir);
+                        HitInfo shadowRayHitInfo = rayCollision(shadowRay);
+                        if (length(shadowRayHitInfo.hitPoint - rayOrigin) < maxRayLength) {
+                            shadowRayHits++;
+                        }
+                        
+                    }
+                    float att = lightDistance * lightDistance;
+                    illumination += light.color * light.maxIntensity * diffuse * hitInfo.mat.color * (1.0-float(shadowRayHits)/shadowRays)/ att;
+
+                    vec3 lightDir = normalize(hitInfo.hitPoint - light.pos);
+                    vec3 reflectedLightDir = reflect(lightDir, hitInfo.normal);
+
+                }
+
+                
+                
+                break;
+            case(1):
+                break;
+        }
+    }
+
+    return illumination;
 }
 
 vec3 computeRayColor(Ray ray, inout uint seed) {
@@ -259,7 +363,7 @@ vec3 computeRayColor(Ray ray, inout uint seed) {
                     float sin = sqrt(1.0f - cos*cos);
                     bool canRefract = ni_nt * sin < 1;
 
-                    ray.direction = canRefract ? refract(normalize(ray.direction), outwardNormal, ni_nt) : reflect(normalize(ray.direction), outwardNormal);
+                    ray.direction = canRefract || schlick(cos, hitInfo.mat.refIndex) < randomValue(seed) ? refract(normalize(ray.direction), outwardNormal, ni_nt) : reflect(normalize(ray.direction), outwardNormal);
                     break;
                 case (3):
                     ray.direction = hitInfo.normal + randomPointInSphere(seed);
@@ -270,6 +374,8 @@ vec3 computeRayColor(Ray ray, inout uint seed) {
             float lightStrength = dot(hitInfo.normal, ray.direction);
             rayColor *= hitInfo.mat.color * lightStrength;
             incomingLight += emittedLight * rayColor;
+
+            incomingLight += rayColor * computeDirectIllumination(ray, hitInfo, seed);
         } else {
             incomingLight += GetEnvironmentLight(ray.direction) * rayColor;
             break;
