@@ -42,14 +42,19 @@ void initializeUniforms(Shader shader) {
     shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].pos").c_str(), 0, 3, 5);
     shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].color").c_str(), 1, 1, 1);
     shader.setInt(std::string("u_lights[").append(std::to_string(0)).append("].type").c_str(), 0);
-    shader.setFloat(std::string("u_lights[").append(std::to_string(0)).append("].maxIntensity").c_str(), 4);
+    shader.setFloat(std::string("u_lights[").append(std::to_string(0)).append("].maxIntensity").c_str(), 2);
 
+    /*shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].dir").c_str(), 0, 3, 5);
+    shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].color").c_str(), 1, 1, 1);
+    shader.setInt(std::string("u_lights[").append(std::to_string(0)).append("].type").c_str(), 1);
+    shader.setFloat(std::string("u_lights[").append(std::to_string(0)).append("].maxIntensity").c_str(), 1);*/
 }
 
 double mouseX, mouseY;
 void updateUniforms(Shader shader, GLFWwindow* window) {
     glfwGetCursorPos(window, &mouseX, &mouseY);
     shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].pos").c_str(), -(mouseX - 640)/100, -(mouseY - 360)/100, 5);
+    //shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].dir").c_str(), -(mouseX - 640)/20, -(mouseY - 360)/20, -5);
     //shader.setVec3(std::string("u_spheres[").append(std::to_string(0)).append("].center").c_str(), 0, std::sin(glfwGetTime()), 5);
     //shader.setFloat(std::string("u_spheres[").append(std::to_string(0)).append("].mat.emissionStrength").c_str(), 6.0f * std::abs(0.3f + std::sin(glfwGetTime())));
 }

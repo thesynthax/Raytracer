@@ -6,8 +6,8 @@
 #define MAX_LIGHT_COUNT 10
 #define MAX_BOUNCE_LIMIT 20
 #define RAYS_PER_PIXEL 5
-#define SHADOW_RAYS 20
-#define LIGHT_RADIUS 0.1
+#define SHADOW_RAYS 10
+#define LIGHT_RADIUS 0.2
 
 in vec2 uv;
 
@@ -63,7 +63,14 @@ struct Ray {
     vec3 direction;
 };
 
-Ray getRay(Camera cam, float u, float v) {
+Ray getRay(vec3 origin, vec3 direction) {
+    Ray ray;
+    ray.origin = origin;
+    ray.direction = direction;
+    return ray;
+}
+
+Ray getRayFromScreen(Camera cam, float u, float v) {
     Ray ray;
     ray.origin = cam.position;
     ray.direction = cam.llc + cam.horizontal * u + cam.vertical * v - cam.position;
@@ -92,11 +99,11 @@ struct Sphere {
     Material mat;
 };
 
-struct Plane {
-    vec3 center;
-    vec3 normal;
-    float width;
-    float height;
+struct Quad {
+    vec3 pointA;
+    vec3 pointB;
+    vec3 pointC;
+    vec3 pointD;
     Material mat;
 };
 
@@ -121,7 +128,7 @@ struct Light {
 };
 
 uniform Sphere u_spheres[MAX_OBJECT_COUNT];
-uniform Plane u_planes[MAX_OBJECT_COUNT];
+uniform Quad u_quads[MAX_OBJECT_COUNT];
 uniform Light u_lights[MAX_LIGHT_COUNT];
 
 uint nextRandom(inout uint state)
@@ -135,6 +142,10 @@ uint nextRandom(inout uint state)
 float randomValue(inout uint state)
 {
     return nextRandom(state) / 4294967295.0; // 2^32 - 1
+}
+
+float random(uint state) {
+    return randomValue(state);
 }
 
 float randomValueNormalDistribution(inout uint state)
@@ -224,9 +235,10 @@ HitInfo sphereIntersection(Ray ray, Sphere sphere) {
     return hitInfo;
 }
 
-HitInfo planeIntersection (Ray ray, Plane plane) {
+HitInfo quadIntersection (Ray ray, Quad quad) {
     HitInfo hitInfo = {false, 0, vec3(0), vec3(0), {0, vec3(0), 0, 0, 0}};
-
+    
+    
 
     return hitInfo;
 }
@@ -259,9 +271,9 @@ HitInfo rayCollision(Ray ray) {
         }
     }
 
-    for (int i = 0; i < u_planes.length(); i++) {
-        Plane plane = u_planes[i];
-        HitInfo hitInfo = planeIntersection(ray, plane);
+    for (int i = 0; i < u_quads.length(); i++) {
+        Quad quad = u_quads[i];
+        HitInfo hitInfo = quadIntersection(ray, quad);
 
         if (hitInfo.hit && hitInfo.distance < closest.distance) {
             closest = hitInfo;
@@ -287,41 +299,57 @@ vec3 computeDirectIllumination(Ray ray, HitInfo hitInfo, uint seed) {
         Light light = u_lights[i];
         
         switch(light.type) {
-            case(0):
+            case(0): {
                 float lightDistance = length(light.pos - hitInfo.hitPoint);
                 if (lightDistance > calculatePointLightReach(light, lightDistance)) continue;
-
                 float diffuse = clamp(dot(hitInfo.normal, normalize(light.pos - hitInfo.hitPoint)), 0, 1);
 
-                if (diffuse > EPSILON || hitInfo.mat.fuzz < 1.0f) {
+                if (diffuse > EPSILON) {
                     int shadowRays = int(SHADOW_RAYS * LIGHT_RADIUS * LIGHT_RADIUS / (lightDistance * lightDistance) + 1);
                     int shadowRayHits = 0;
 
                     for (int i = 0; i < shadowRays; i++) {
-                        vec3 lightSurfacePoint = light.pos + normalize(vec3(rand(vec2(i+seed, 1)+hitInfo.hitPoint.xy), rand(vec2(i+seed, 2)+hitInfo.hitPoint.yz), rand(vec2(i+seed, 3)+hitInfo.hitPoint.xz))) * LIGHT_RADIUS;
+                        vec3 lightSurfacePoint = light.pos + normalize(vec3(random(i+seed+1), random(i+seed+2), random(i+seed+3))) * LIGHT_RADIUS;
                         vec3 lightDir = normalize(lightSurfacePoint - hitInfo.hitPoint);
-                        vec3 rayOrigin = hitInfo.hitPoint + lightDir * EPSILON * 2.0f;
-                        float maxRayLength = length(lightSurfacePoint - rayOrigin);
-                        Ray shadowRay = Ray(rayOrigin, lightDir);
-                        HitInfo shadowRayHitInfo = rayCollision(shadowRay);
-                        if (length(shadowRayHitInfo.hitPoint - rayOrigin) < maxRayLength) {
+                        vec3 shadowRayOrigin = hitInfo.hitPoint + lightDir * EPSILON;
+                        float originToLightDistance = length(lightSurfacePoint - shadowRayOrigin);
+                        Ray shadowRay = getRay(shadowRayOrigin, lightDir);
+                        HitInfo shadowRayHit = rayCollision(shadowRay);
+                        if (shadowRayHit.distance < originToLightDistance) {
                             shadowRayHits++;
                         }
-                        
                     }
                     float att = lightDistance * lightDistance;
-                    illumination += light.color * light.maxIntensity * diffuse * hitInfo.mat.color * (1.0-float(shadowRayHits)/shadowRays)/ att;
-
-                    vec3 lightDir = normalize(hitInfo.hitPoint - light.pos);
-                    vec3 reflectedLightDir = reflect(lightDir, hitInfo.normal);
-
+                    illumination += light.color * light.maxIntensity * diffuse * hitInfo.mat.color * (1.0-float(shadowRayHits)/float(shadowRays)) / att;
                 }
 
-                
-                
+                /*float shadow = 0;
+                if (diffuse > EPSILON) {
+                    vec3 lightDir = normalize(light.pos - hitInfo.hitPoint);
+                    vec3 shadowRayOrigin = hitInfo.hitPoint + lightDir * EPSILON;
+                    float originToLightDistance = length(light.pos - shadowRayOrigin);
+                    Ray shadowRay = getRay(shadowRayOrigin, lightDir);
+                    HitInfo shadowRayHit = rayCollision(shadowRay);
+                    if (shadowRayHit.distance < originToLightDistance) shadow = 1;
+
+                    float att = lightDistance * lightDistance;
+                    illumination += light.color * light.maxIntensity * diffuse * hitInfo.mat.color * (1.0-shadow) / att;
+                }*/
+
                 break;
-            case(1):
+            }
+            case(1): {
+                float diffuse = clamp(dot(hitInfo.normal, normalize(light.dir)), 0, 1);
+                float shadow = 0;
+                if (diffuse > EPSILON || hitInfo.mat.fuzz < 1.0f) {
+                    vec3 shadowRayOrigin = hitInfo.hitPoint + light.dir * EPSILON;
+                    Ray shadowRay = getRay(shadowRayOrigin, light.dir);
+                    HitInfo shadowRayHit = rayCollision(shadowRay);
+                    if (shadowRayHit.hit) shadow = 1;
+                    illumination += light.color * light.maxIntensity * diffuse * (1.0f - shadow) * hitInfo.mat.color;
+                }
                 break;
+            }
         }
     }
 
@@ -393,8 +421,7 @@ void main() {
     // Initialization
     Camera cam = camera(u_fov, u_aspectRatio, u_initCamPos, u_initCamDir, u_upDir);
 
-    Ray ray;
-    ray = getRay(cam, normalized_uv.x, normalized_uv.y);
+    Ray ray = getRayFromScreen(cam, normalized_uv.x, normalized_uv.y);
     if (useMouse) {
         ray.origin.yz *= rot2D(-m.y);
         ray.direction.yz *= rot2D(-m.y);
