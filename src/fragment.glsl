@@ -111,18 +111,6 @@ struct Triangle {
     Material mat;
 };
 
-/*
-struct Box {
-    vec3 min;
-    vec3 max;
-
-};
-
-struct Object {
-    int type; //0 = any, 1 = sphere, 2 = box, 3 = quad
-};
-*/
-
 struct Light {
     int type; //0 = point, 1 = directional
     vec3 pos; //for type = 0

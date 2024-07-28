@@ -36,12 +36,17 @@ void initializeUniforms(Shader shader) {
     shader.setFloat(std::string("u_spheres[").append(std::to_string(2)).append("].radius").c_str(), 1);
     shader.setVec3(std::string("u_spheres[").append(std::to_string(2)).append("].mat.color").c_str(), 0.8f, 0.2f, 0.2f);
     shader.setInt(std::string("u_spheres[").append(std::to_string(2)).append("].mat.type").c_str(), 0);
-    shader.setInt(std::string("u_spheres[").append(std::to_string(2)).append("].mat.refIndex").c_str(), 2);
 
     shader.setVec3(std::string("u_spheres[").append(std::to_string(3)).append("].center").c_str(), 0, -21, 5);
     shader.setFloat(std::string("u_spheres[").append(std::to_string(3)).append("].radius").c_str(), 20);
     shader.setVec3(std::string("u_spheres[").append(std::to_string(3)).append("].mat.color").c_str(), 0.4f, 0.1f, 0.5f);
     shader.setInt(std::string("u_spheres[").append(std::to_string(3)).append("].mat.type").c_str(), 0);
+
+    shader.setVec3(std::string("u_triangles[").append(std::to_string(0)).append("].pointA").c_str(), 0, 0, 2);
+    shader.setVec3(std::string("u_triangles[").append(std::to_string(0)).append("].pointB").c_str(), 3, 3, 2);
+    shader.setVec3(std::string("u_triangles[").append(std::to_string(0)).append("].pointC").c_str(), -3, 3, 2);
+    shader.setInt(std::string("u_triangles[").append(std::to_string(0)).append("].mat.type").c_str(), 0);
+    shader.setVec3(std::string("u_triangles[").append(std::to_string(0)).append("].mat.color").c_str(), 1, 1, 1);
 
     if (point) {
         shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].pos").c_str(), 0, 3, 5);
