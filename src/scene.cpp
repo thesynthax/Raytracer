@@ -1,6 +1,10 @@
 #include "scene.h"
 #include <GLFW/glfw3.h>
-#include <cmath>
+
+bool point = false;
+void setPoint() {
+    point = !point;
+}
 
 void initializeUniforms(Shader shader) {
     shader.setFloat("INFINITY", INFINITY);
@@ -26,7 +30,7 @@ void initializeUniforms(Shader shader) {
     shader.setFloat(std::string("u_spheres[").append(std::to_string(1)).append("].radius").c_str(), 1);
     shader.setVec3(std::string("u_spheres[").append(std::to_string(1)).append("].mat.color").c_str(), 0.2f, 0.8f, 0.2f);
     shader.setInt(std::string("u_spheres[").append(std::to_string(1)).append("].mat.type").c_str(), 3);
-    shader.setFloat(std::string("u_spheres[").append(std::to_string(1)).append("].mat.emissionStrength").c_str(), 4);
+    shader.setFloat(std::string("u_spheres[").append(std::to_string(1)).append("].mat.emissionStrength").c_str(), 6);
 
     shader.setVec3(std::string("u_spheres[").append(std::to_string(2)).append("].center").c_str(), -3, 0, 5);
     shader.setFloat(std::string("u_spheres[").append(std::to_string(2)).append("].radius").c_str(), 1);
@@ -39,22 +43,30 @@ void initializeUniforms(Shader shader) {
     shader.setVec3(std::string("u_spheres[").append(std::to_string(3)).append("].mat.color").c_str(), 0.4f, 0.1f, 0.5f);
     shader.setInt(std::string("u_spheres[").append(std::to_string(3)).append("].mat.type").c_str(), 0);
 
-    shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].pos").c_str(), 0, 3, 5);
-    shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].color").c_str(), 1, 1, 1);
-    shader.setInt(std::string("u_lights[").append(std::to_string(0)).append("].type").c_str(), 0);
-    shader.setFloat(std::string("u_lights[").append(std::to_string(0)).append("].maxIntensity").c_str(), 2);
-
-    /*shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].dir").c_str(), 0, 3, 5);
-    shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].color").c_str(), 1, 1, 1);
-    shader.setInt(std::string("u_lights[").append(std::to_string(0)).append("].type").c_str(), 1);
-    shader.setFloat(std::string("u_lights[").append(std::to_string(0)).append("].maxIntensity").c_str(), 1);*/
+    if (point) {
+        shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].pos").c_str(), 0, 3, 5);
+        shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].color").c_str(), 1, 1, 1);
+        shader.setInt(std::string("u_lights[").append(std::to_string(0)).append("].type").c_str(), 0);
+        shader.setFloat(std::string("u_lights[").append(std::to_string(0)).append("].maxIntensity").c_str(), 2);
+    } else {
+        shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].dir").c_str(), 0, 3, 5);
+        shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].color").c_str(), 1, 1, 1);
+        shader.setInt(std::string("u_lights[").append(std::to_string(0)).append("].type").c_str(), 1);
+        shader.setFloat(std::string("u_lights[").append(std::to_string(0)).append("].maxIntensity").c_str(), 1);
+    }
 }
 
 double mouseX, mouseY;
+double deltaTime = 0.0f;
 void updateUniforms(Shader shader, GLFWwindow* window) {
+    double preTime = glfwGetTime();
+    deltaTime = glfwGetTime() - preTime;
+    //std::cout << deltaTime << std::endl;
     glfwGetCursorPos(window, &mouseX, &mouseY);
-    shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].pos").c_str(), -(mouseX - 640)/100, -(mouseY - 360)/100, 5);
-    //shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].dir").c_str(), -(mouseX - 640)/20, -(mouseY - 360)/20, -5);
-    //shader.setVec3(std::string("u_spheres[").append(std::to_string(0)).append("].center").c_str(), 0, std::sin(glfwGetTime()), 5);
+    if (point)
+        shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].pos").c_str(), -(mouseX - 640)/100, -(mouseY - 360)/100, 5);
+    else
+        shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].dir").c_str(), -(mouseX - 640)/20, -(mouseY - 360)/20, -5);
+    shader.setVec3(std::string("u_spheres[").append(std::to_string(1)).append("].center").c_str(), 3, std::sin(glfwGetTime()), 5);
     //shader.setFloat(std::string("u_spheres[").append(std::to_string(0)).append("].mat.emissionStrength").c_str(), 6.0f * std::abs(0.3f + std::sin(glfwGetTime())));
 }

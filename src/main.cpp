@@ -11,6 +11,8 @@ const unsigned int SCR_HEIGHT = 720;
 const std::string VERT_PATH = "/home/thesynthax/projects/cpp/raytracer/src/vertex.glsl";
 const std::string FRAG_PATH = "/home/thesynthax/projects/cpp/raytracer/src/fragment.glsl";
 
+//GLuint screenTexture;
+
 int main() {
 
     //Window Initialization
@@ -50,12 +52,26 @@ int main() {
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+    /*GLuint FBO;
+    glGenTextures(1, &screenTexture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, screenTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glGenFramebuffers(1, &FBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screenTexture, 0);*/
+
+
 
     //Shader Initialization and main code loop
     Shader shader(VERT_PATH, FRAG_PATH);
     shader.use();
     initializeUniforms(shader);
+    //shader.setInt("u_screenTexture", 0);
 
+    //int accumulatedPasses = 0;
 	while (!glfwWindowShouldClose(window))
 	{
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -75,6 +91,15 @@ int main() {
 		glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
+        //glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+        //shader.setBool("u_directOutputPass", false);
+		//glDrawArrays(GL_TRIANGLES, 0, 6);
+		//accumulatedPasses += 1;
+		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		//shader.setInt("u_accumulatedPasses", accumulatedPasses);*/
+		//shader.setBool("u_directOutputPass", true);
+		//glDrawArrays(GL_TRIANGLES, 0, 6);
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
@@ -82,6 +107,8 @@ int main() {
     //Deletion of vertex data and deactivation of shader program
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
+    //glDeleteFramebuffers(1, &FBO);
+	//glDeleteTextures(1, &screenTexture);
 
     shader.deactivate();
 

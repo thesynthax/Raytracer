@@ -5,5 +5,6 @@
 #include "random.h"
 #include <GLFW/glfw3.h>
 
+void setPoint();
 void initializeUniforms(Shader shader);
 void updateUniforms(Shader shader, GLFWwindow* window);

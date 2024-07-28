@@ -2,8 +2,8 @@
 
 #define PI 3.14159265359
 #define EPSILON 0.0001
-#define MAX_OBJECT_COUNT 100
-#define MAX_LIGHT_COUNT 10
+#define MAX_OBJECT_COUNT 10
+#define MAX_LIGHT_COUNT 5
 #define MAX_BOUNCE_LIMIT 20
 #define RAYS_PER_PIXEL 5
 #define SHADOW_RAYS 10
@@ -25,6 +25,11 @@ uniform float u_fov;
 uniform vec3 u_initCamPos;
 uniform vec3 u_initCamDir;
 uniform vec3 u_upDir;
+
+//uniform sampler2D u_screenTexture;
+//uniform int u_accumulatedPasses;
+//uniform bool u_directOutputPass;
+//uniform int u_framePasses;
 
 bool useMouse = false;
 
@@ -99,11 +104,10 @@ struct Sphere {
     Material mat;
 };
 
-struct Quad {
+struct Triangle {
     vec3 pointA;
     vec3 pointB;
     vec3 pointC;
-    vec3 pointD;
     Material mat;
 };
 
@@ -128,7 +132,7 @@ struct Light {
 };
 
 uniform Sphere u_spheres[MAX_OBJECT_COUNT];
-uniform Quad u_quads[MAX_OBJECT_COUNT];
+uniform Triangle u_triangles[MAX_OBJECT_COUNT];
 uniform Light u_lights[MAX_LIGHT_COUNT];
 
 uint nextRandom(inout uint state)
@@ -235,10 +239,26 @@ HitInfo sphereIntersection(Ray ray, Sphere sphere) {
     return hitInfo;
 }
 
-HitInfo quadIntersection (Ray ray, Quad quad) {
+HitInfo triangleIntersection(Ray ray, Triangle triangle) {
+    vec3 AB = triangle.pointB - triangle.pointA;
+    vec3 AC = triangle.pointC - triangle.pointA;
+    vec3 normal = cross(AB, AC);
+    vec3 ao = ray.origin - triangle.pointA;
+    vec3 dao = cross(ao, ray.direction);
+
+    float det = -dot(ray.direction, normal);
+
+    float dist = dot(ao, normal) / det;
+    float u = dot(AC, dao) / det;
+    float v = -dot(AB, dao) / det;
+    float w = 1 - u - v;
+    
     HitInfo hitInfo = {false, 0, vec3(0), vec3(0), {0, vec3(0), 0, 0, 0}};
-    
-    
+    hitInfo.hit = det >= EPSILON && dist >= 0 && u >= 0 && v >= 0 && w >= 0;
+    hitInfo.hitPoint = ray.origin + ray.direction * dist;
+    hitInfo.normal = normal;
+    hitInfo.distance = dist;
+    hitInfo.mat = triangle.mat;
 
     return hitInfo;
 }
@@ -271,9 +291,9 @@ HitInfo rayCollision(Ray ray) {
         }
     }
 
-    for (int i = 0; i < u_quads.length(); i++) {
-        Quad quad = u_quads[i];
-        HitInfo hitInfo = quadIntersection(ray, quad);
+    for (int i = 0; i < u_triangles.length(); i++) {
+        Triangle triangle = u_triangles[i];
+        HitInfo hitInfo = triangleIntersection(ray, triangle);
 
         if (hitInfo.hit && hitInfo.distance < closest.distance) {
             closest = hitInfo;
@@ -399,8 +419,8 @@ vec3 computeRayColor(Ray ray, inout uint seed) {
                     break;
             }
 
-            float lightStrength = dot(hitInfo.normal, ray.direction);
-            rayColor *= hitInfo.mat.color * lightStrength;
+            //float lightStrength = dot(hitInfo.normal, ray.direction);
+            rayColor *= hitInfo.mat.color;// * lightStrength;
             incomingLight += emittedLight * rayColor;
 
             incomingLight += rayColor * computeDirectIllumination(ray, hitInfo, seed);
@@ -422,24 +442,25 @@ void main() {
     Camera cam = camera(u_fov, u_aspectRatio, u_initCamPos, u_initCamDir, u_upDir);
 
     Ray ray = getRayFromScreen(cam, normalized_uv.x, normalized_uv.y);
-    if (useMouse) {
-        ray.origin.yz *= rot2D(-m.y);
-        ray.direction.yz *= rot2D(-m.y);
-        ray.origin.xz *= rot2D(m.x);
-        ray.direction.xz *= rot2D(m.x);
-    }
+    //if (u_directOutputPass) {
+        if (useMouse) {
+            ray.origin.yz *= rot2D(-m.y);
+            ray.direction.yz *= rot2D(-m.y);
+            ray.origin.xz *= rot2D(m.x);
+            ray.direction.xz *= rot2D(m.x);
+        }
 
-    //Taking current pixel as seed for RNG
-    vec2 pixelCoord = uv * u_screenPixels;
-    uint pixelIndex = int(pixelCoord.y) * int(u_screenPixels.x) + int(pixelCoord.x);
-    uint seed = pixelIndex;
+        //Taking current pixel as seed for RNG
+        vec2 pixelCoord = uv * u_screenPixels;
+        uint pixelIndex = int(pixelCoord.y) * int(u_screenPixels.x) + int(pixelCoord.x);
+        uint seed = pixelIndex;
 
-    // Coloring
-    vec3 totalIncomingLight = vec3(0);
-    for (int i = 0; i < RAYS_PER_PIXEL; i++) {
-        totalIncomingLight += computeRayColor(ray, seed);
-    }
-
-    vec3 col = totalIncomingLight / RAYS_PER_PIXEL;
-    FragColor = vec4(col, 1); 
+        // Coloring
+        vec3 totalIncomingLight = vec3(0);
+        for (int i = 0; i < RAYS_PER_PIXEL; i++) {
+            totalIncomingLight += computeRayColor(ray, seed);
+        }
+        vec3 col = totalIncomingLight / RAYS_PER_PIXEL;
+        FragColor = vec4(col, 1); 
+    //}
 }
