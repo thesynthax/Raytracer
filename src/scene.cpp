@@ -1,9 +1,14 @@
 #include "scene.h"
 #include <GLFW/glfw3.h>
 
-bool point = false;
+bool point = true;
 void setPoint() {
     point = !point;
+}
+
+bool softShadows = true;
+void setSoftShadows() {
+    softShadows = !softShadows;
 }
 
 void initializeUniforms(Shader shader) {
@@ -48,6 +53,17 @@ void initializeUniforms(Shader shader) {
     shader.setInt(std::string("u_triangles[").append(std::to_string(0)).append("].mat.type").c_str(), 0);
     shader.setVec3(std::string("u_triangles[").append(std::to_string(0)).append("].mat.color").c_str(), 1, 1, 1);
 
+    
+}
+
+double mouseX, mouseY;
+double deltaTime = 0.0f;
+void updateUniforms(Shader shader, GLFWwindow* window) {
+    double preTime = glfwGetTime();
+    deltaTime = glfwGetTime() - preTime;
+    //std::cout << deltaTime << std::endl;
+    shader.setBool("u_softShadows", softShadows);
+    glfwGetCursorPos(window, &mouseX, &mouseY);
     if (point) {
         shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].pos").c_str(), 0, 3, 5);
         shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].color").c_str(), 1, 1, 1);
@@ -59,15 +75,6 @@ void initializeUniforms(Shader shader) {
         shader.setInt(std::string("u_lights[").append(std::to_string(0)).append("].type").c_str(), 1);
         shader.setFloat(std::string("u_lights[").append(std::to_string(0)).append("].maxIntensity").c_str(), 1);
     }
-}
-
-double mouseX, mouseY;
-double deltaTime = 0.0f;
-void updateUniforms(Shader shader, GLFWwindow* window) {
-    double preTime = glfwGetTime();
-    deltaTime = glfwGetTime() - preTime;
-    //std::cout << deltaTime << std::endl;
-    glfwGetCursorPos(window, &mouseX, &mouseY);
     if (point)
         shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].pos").c_str(), -(mouseX - 640)/100, -(mouseY - 360)/100, 5);
     else

@@ -88,6 +88,9 @@ int main() {
         glfwGetCursorPos(window, &mouseX, &mouseY);
         shader.setVec2("u_mousePos", (float)(mouseX/SCR_WIDTH), 1.0f - (float)(mouseY/SCR_HEIGHT));
 
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) setPoint();
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) setSoftShadows();
+
 		glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 

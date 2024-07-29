@@ -6,5 +6,6 @@
 #include <GLFW/glfw3.h>
 
 void setPoint();
+void setSoftShadows();
 void initializeUniforms(Shader shader);
 void updateUniforms(Shader shader, GLFWwindow* window);
