@@ -4,9 +4,9 @@ in vec2 uv;
 
 out vec4 FragColor;
 
-uniform float aspectRatio;
-uniform float time;
-uniform vec2 mousePos;
+uniform float u_aspectRatio;
+uniform float u_time;
+uniform vec2 u_mousePos;
 
 float sdSphere(vec3 p, float r) {
     return length(p) - r;
@@ -27,7 +27,7 @@ float smoothMin(float a, float b, float k) {
 }
 
 float map(vec3 p) {
-    vec3 spherePos = vec3(sin(time) * 4.f, 0, 0);
+    vec3 spherePos = vec3(sin(u_time) * 4.f, 0, 0);
     float radius = 1.0f;
     float sphere = sdSphere(p - spherePos, radius);
     float box = sdBox(p, vec3(0.7f));
@@ -43,8 +43,8 @@ mat2 rot2D (float angle) {
 }
 
 void main() {
-    vec2 n = vec2(uv.x * aspectRatio, uv.y);
-    vec2 m = vec2(mousePos.x * aspectRatio, mousePos.y); 
+    vec2 n = vec2(uv.x * u_aspectRatio, uv.y);
+    vec2 m = vec2(u_mousePos.x * u_aspectRatio, u_mousePos.y); 
 
     // Initialization
     vec3 ro = vec3(0, 0, -3);         // ray origin

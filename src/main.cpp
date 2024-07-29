@@ -8,10 +8,19 @@
 const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
 
+unsigned int screenWidth = SCR_WIDTH;
+unsigned int screenHeight = SCR_HEIGHT;
+
 const std::string VERT_PATH = "/home/thesynthax/projects/cpp/raytracer/src/vertex.glsl";
 const std::string FRAG_PATH = "/home/thesynthax/projects/cpp/raytracer/src/fragment.glsl";
 
 //GLuint screenTexture;
+
+void frameBufferSizeCallback(GLFWwindow* window, int width, int height) {
+    glViewport(0, 0, width, height);
+    screenWidth = width;
+    screenHeight = height;
+}
 
 int main() {
 
@@ -27,6 +36,8 @@ int main() {
 		glfwTerminate();
 		return -1;
 	}
+    glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
+
     double mouseX, mouseY;
 	glfwMakeContextCurrent(window);
 	gladLoadGL();
@@ -77,7 +88,7 @@ int main() {
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-        updateUniforms(shader, window);
+        updateUniforms(shader, window, screenWidth, screenHeight);
 
         shader.setVec2("u_screenPixels", SCR_WIDTH, SCR_HEIGHT);
         shader.setFloat("u_aspectRatio", (float)SCR_WIDTH/(float)SCR_HEIGHT);
@@ -90,6 +101,7 @@ int main() {
 
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) setPoint();
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) setSoftShadows();
+        if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS) setUseMouseForCamera();
 
 		glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);

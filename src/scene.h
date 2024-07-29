@@ -7,5 +7,6 @@
 
 void setPoint();
 void setSoftShadows();
+void setUseMouseForCamera();
 void initializeUniforms(Shader shader);
-void updateUniforms(Shader shader, GLFWwindow* window);
+void updateUniforms(Shader shader, GLFWwindow* window, int scrWidth, int scrHeight);
