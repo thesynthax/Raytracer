@@ -4,7 +4,21 @@ cmake_policy(SET CMP0072 NEW)
 
 find_package(OpenGL REQUIRED)
 
-file(GLOB raytracer_src CONFIGURE_DEPENDS "src/*.h" "src/*.c" "src/*.cpp" "src/imgui/*.h" "src/imgui/*.cpp")
+file(GLOB raytracer_src CONFIGURE_DEPENDS 
+    "src/*.h" 
+    "src/*.c" 
+    "src/*.cpp" 
+    "src/imgui/*.h" 
+    "src/imgui/*.cpp" 
+    "src/glad/*.h" 
+    "src/glad/*.c" 
+    "src/glfw/*.h" 
+    "src/glfw/*.cpp" 
+    "src/glm/*.hpp" 
+    "src/glm/*.cpp" 
+    "src/glm/gtc/*.hpp" 
+    "src/glm/gtc/*.cpp"
+)
 add_executable(raytracer ${raytracer_src})
 
 target_link_libraries(raytracer 
