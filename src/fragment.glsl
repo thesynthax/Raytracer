@@ -254,6 +254,24 @@ HitInfo triangleIntersection(Ray ray, Triangle triangle) {
     return hitInfo;
 }
 
+void sphereBoundingBox(Sphere sphere, inout vec3 boundsMin, inout vec3 boundsMax) {
+    vec3 center = sphere.center;
+    vec3 extents = vec3(sphere.radius, sphere.radius, sphere.radius);
+    boundsMin = center - extents;
+    boundsMax = center + extents;
+}
+
+bool rayHitBoundingBox(Ray ray, vec3 boundsMin, vec3 boundsMax) {
+    vec3 invDir = 1 / ray.direction;
+    vec3 tMin = (boundsMin - ray.origin) * invDir;
+    vec3 tMax = (boundsMax - ray.origin) * invDir;
+    vec3 t1 = min(tMin, tMax);
+    vec3 t2 = max(tMin, tMax);
+    float tNear = max(max(t1.x, t1.y), t1.z);
+    float tFar = min(min(t2.x, t2.y), t2.z);
+    return tNear <= tFar;
+}
+
 vec3 GetEnvironmentLight(vec3 dir)
 {
     //if (UseSky == 0) return 0;
@@ -275,6 +293,10 @@ HitInfo rayCollision(Ray ray) {
 
     for (int i = 0; i < u_spheres.length(); i++) {
         Sphere sphere = u_spheres[i];
+        //vec3 boundsMin, boundsMax;
+        //sphereBoundingBox(sphere, boundsMin, boundsMax);
+        //if (!rayHitBoundingBox(ray, boundsMin, boundsMax)) continue;
+
         HitInfo hitInfo = sphereIntersection(ray, sphere);
 
         if (hitInfo.hit && hitInfo.distance < closest.distance) {

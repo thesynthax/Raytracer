@@ -1,10 +1,12 @@
 #include <iostream>
 #include "gui.h"
+#include "imgui/imgui.h"
 #include "shader.h"
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+#include "glad.h"
+#include "glfw3.h"
 #include <string>
 #include "scene.h"
+#include <chrono>
 
 const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
@@ -76,7 +78,14 @@ int main() {
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screenTexture, 0);*/
 
 
-    initGUI(window);
+    std::chrono::steady_clock::time_point lastTime;
+    int frameCount = 0;
+    float deltaTime = 0.0f;
+    float fps = 0.0f;
+
+    lastTime = std::chrono::steady_clock::now();
+    
+    ImGuiIO& io = initGUI(window);
 
     //Shader Initialization and main code loop
     Shader shader(VERT_PATH, FRAG_PATH);
@@ -119,7 +128,16 @@ int main() {
 		//shader.setBool("u_directOutputPass", true);
 		//glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        drawFrame();
+        drawFrame(io);
+
+        /*auto currentTime = std::chrono::steady_clock::now();
+        float elapsedTime = std::chrono::duration_cast<std::chrono::duration<float>>(currentTime - lastTime).count();
+        deltaTime = elapsedTime;
+        lastTime = currentTime;
+        frameCount++;
+        fps = frameCount / elapsedTime;
+        frameCount = 0;
+        std::cout << "FPS: " << fps << std::endl; // Or display on screen*/
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
