@@ -1,4 +1,5 @@
 #include <iostream>
+#include "gui.h"
 #include "shader.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -75,6 +76,7 @@ int main() {
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screenTexture, 0);*/
 
 
+    initGUI(window);
 
     //Shader Initialization and main code loop
     Shader shader(VERT_PATH, FRAG_PATH);
@@ -87,6 +89,8 @@ int main() {
 	{
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
+
+        initFrame();
 
         updateUniforms(shader, window, screenWidth, screenHeight);
 
@@ -115,9 +119,13 @@ int main() {
 		//shader.setBool("u_directOutputPass", true);
 		//glDrawArrays(GL_TRIANGLES, 0, 6);
 
+        drawFrame();
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+
+    deactivateGUI();
 
     //Deletion of vertex data and deactivation of shader program
 	glDeleteVertexArrays(1, &VAO);

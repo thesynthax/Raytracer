@@ -33,7 +33,8 @@ uniform bool u_softShadows;
 //uniform bool u_directOutputPass;
 //uniform int u_framePasses;
 
-uniform bool u_useMouseForCamera = false;
+uniform bool u_useMouseForCamera;
+uniform bool u_cameraMoved;
 
 float deg2rad(float deg) {
     float rad = deg * PI / 180.0f;
@@ -424,7 +425,6 @@ vec3 computeRayColor(Ray ray, inout uint seed) {
     return incomingLight;
 }
 
-bool cameraMoved = false;
 void main() {
     vec2 normalized_uv = uv / 2.0f + 0.5f; 
     vec2 n = vec2(uv.x * u_aspectRatio, uv.y);
@@ -437,19 +437,18 @@ void main() {
     vec3 ro, rd;
     //if (u_directOutputPass) {
         if (u_useMouseForCamera) {
-            cameraMoved = true;
             ray.origin.yz *= rot2D(-m.y);
             ray.direction.yz *= rot2D(-m.y);
             ray.origin.xz *= rot2D(m.x);
             ray.direction.xz *= rot2D(m.x);
             ro = ray.origin;
             rd = ray.direction;
-        } else {
-            if (cameraMoved) {
+        }/* else {
+            if (u_cameraMoved) {
                 ray.origin = ro;
                 ray.direction = rd;
             }
-        }
+        }*/
 
         //Taking current pixel as seed for RNG
         vec2 pixelCoord = uv * u_screenPixels;

@@ -16,12 +16,15 @@ void setUseMouseForCamera() {
     useMouseForCamera = !useMouseForCamera;
 }
 
+bool cameraMoved = false;
 void initializeUniforms(Shader shader) {
     shader.setFloat("INFINITY", INFINITY);
     shader.setFloat("u_fov", 70.0f);
     shader.setVec3("u_initCamPos", 0, 0, -10);
     shader.setVec3("u_initCamDir", 0, 0, 0);
     shader.setVec3("u_upDir", 0, 1, 0);
+
+    shader.setBool("u_cameraMoved", cameraMoved);
 
     /*for (int i = 0; i < 9; i++) {
         shader.setVec3(std::string("u_spheres[").append(std::to_string(i)).append("].center").c_str(), rng(-2, 2), rng(-1, 1), rng(2, 6));
@@ -70,6 +73,10 @@ void updateUniforms(Shader shader, GLFWwindow* window, int scrWidth, int scrHeig
     //std::cout << deltaTime << std::endl;
     shader.setBool("u_softShadows", softShadows);
     shader.setBool("u_useMouseForCamera", useMouseForCamera);
+    if (useMouseForCamera) {
+        cameraMoved = true;
+        shader.setBool("u_cameraMoved", cameraMoved);
+    }
     glfwGetCursorPos(window, &mouseX, &mouseY);
     if (point) {
         //shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].pos").c_str(), 0, 3, 5);
