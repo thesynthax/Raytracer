@@ -2,8 +2,8 @@
 #define SHADER_H
 
 #include <cwchar>
-#include <glad/glad.h> 
-  
+#include "glad/glad.h" 
+#include "glm/glm.hpp" 
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -22,6 +22,8 @@ public:
     void setFloat(const char* name, float value) const;
     void setVec2(const char* name, float v1, float v2) const;
     void setVec3(const char* name, float v1, float v2, float v3) const; 
+    void setVec2(const char* name, glm::vec2 v) const;
+    void setVec3(const char* name, glm::vec3 v) const;
     bool getBool(const char* name) const;
     int getInt(const char* name) const;
     float getFloat(const char* name) const;

@@ -1,102 +1,155 @@
 #include "scene.h"
-#include <GLFW/glfw3.h>
+#include "glm/common.hpp"
 
-bool point = true;
-void setPoint() {
-    point = !point;
-}
+namespace Scene {
 
-bool softShadows = true;
-void setSoftShadows() {
-    softShadows = !softShadows;
-}
+    float timeElapsed;
+    glm::vec2 mousePos;
 
-bool useMouseForCamera = false;
-void setUseMouseForCamera() {
-    useMouseForCamera = !useMouseForCamera;
-}
+    int shadowRays;
+    int raysPerPixel;
+    int maxBounceLimit;
 
-bool cameraMoved = false;
-void initializeUniforms(Shader shader) {
-    shader.setFloat("INFINITY", INFINITY);
-    shader.setFloat("u_fov", 70.0f);
-    shader.setVec3("u_initCamPos", 0, 0, -10);
-    shader.setVec3("u_initCamDir", 0, 0, 0);
-    shader.setVec3("u_upDir", 0, 1, 0);
+    glm::vec2 screenPixels;
+    float aspectRatio;
 
-    shader.setFloat("u_blur", 0.0005);
+    float fov;
+    glm::vec3 camPos;
+    glm::vec3 camLookAt;
+    glm::vec3 upDir;
+    bool useMouseForCamera;
 
-    shader.setBool("u_cameraMoved", cameraMoved);
-
-    /*for (int i = 0; i < 9; i++) {
-        shader.setVec3(std::string("u_spheres[").append(std::to_string(i)).append("].center").c_str(), rng(-2, 2), rng(-1, 1), rng(2, 6));
-        shader.setFloat(std::string("u_spheres[").append(std::to_string(i)).append("].radius").c_str(), rng(0.25f, 1));
-        shader.setVec3(std::string("u_spheres[").append(std::to_string(i)).append("].mat.color").c_str(), rng(0, 1), rng(0, 1), rng(0, 1));
-        shader.setVec3(std::string("u_spheres[").append(std::to_string(i)).append("].mat.emission").c_str(), rng(0, 1), rng(0, 1), rng(0, 1));
-    }*/
-    
-    shader.setVec3(std::string("u_spheres[").append(std::to_string(0)).append("].center").c_str(), 0, 0, 0);
-    shader.setFloat(std::string("u_spheres[").append(std::to_string(0)).append("].radius").c_str(), 1);
-    shader.setVec3(std::string("u_spheres[").append(std::to_string(0)).append("].mat.color").c_str(), 1.0f, 1.0f, 1.0f);
-    shader.setInt(std::string("u_spheres[").append(std::to_string(0)).append("].mat.type").c_str(), 1);
-    shader.setFloat(std::string("u_spheres[").append(std::to_string(0)).append("].mat.fuzz").c_str(), 0.1f);
-
-    shader.setVec3(std::string("u_spheres[").append(std::to_string(1)).append("].center").c_str(), 3, 0, 5);
-    shader.setFloat(std::string("u_spheres[").append(std::to_string(1)).append("].radius").c_str(), 1);
-    shader.setVec3(std::string("u_spheres[").append(std::to_string(1)).append("].mat.color").c_str(), 0.2f, 0.8f, 0.2f);
-    shader.setInt(std::string("u_spheres[").append(std::to_string(1)).append("].mat.type").c_str(), 3);
-    shader.setFloat(std::string("u_spheres[").append(std::to_string(1)).append("].mat.emissionStrength").c_str(), 6);
-
-    shader.setVec3(std::string("u_spheres[").append(std::to_string(2)).append("].center").c_str(), -3, 0, 5);
-    shader.setFloat(std::string("u_spheres[").append(std::to_string(2)).append("].radius").c_str(), 1);
-    shader.setVec3(std::string("u_spheres[").append(std::to_string(2)).append("].mat.color").c_str(), 0.8f, 0.2f, 0.2f);
-    shader.setInt(std::string("u_spheres[").append(std::to_string(2)).append("].mat.type").c_str(), 0);
-
-    shader.setVec3(std::string("u_spheres[").append(std::to_string(3)).append("].center").c_str(), 0, -21, 5);
-    shader.setFloat(std::string("u_spheres[").append(std::to_string(3)).append("].radius").c_str(), 20);
-    shader.setVec3(std::string("u_spheres[").append(std::to_string(3)).append("].mat.color").c_str(), 0.4f, 0.1f, 0.5f);
-    shader.setInt(std::string("u_spheres[").append(std::to_string(3)).append("].mat.type").c_str(), 0);
-
-    shader.setVec3(std::string("u_triangles[").append(std::to_string(0)).append("].pointA").c_str(), 0, -1, 5);
-    shader.setVec3(std::string("u_triangles[").append(std::to_string(0)).append("].pointB").c_str(), 3, 4, 5);
-    shader.setVec3(std::string("u_triangles[").append(std::to_string(0)).append("].pointC").c_str(), 0, 2, 5);
-    shader.setInt(std::string("u_triangles[").append(std::to_string(0)).append("].mat.type").c_str(), 3);
-    shader.setInt(std::string("u_triangles[").append(std::to_string(0)).append("].mat.emissionStrength").c_str(), 4);
-    shader.setVec3(std::string("u_triangles[").append(std::to_string(0)).append("].mat.color").c_str(), 1, 1, 1);
-
-    
-}
-
-double mouseX, mouseY;
-double deltaTime = 0.0f;
-void updateUniforms(Shader shader, GLFWwindow* window, int scrWidth, int scrHeight) {
-    double preTime = glfwGetTime();
-    deltaTime = glfwGetTime() - preTime;
-    //std::cout << deltaTime << std::endl;
-    shader.setBool("u_softShadows", softShadows);
-    shader.setBool("u_useMouseForCamera", useMouseForCamera);
-    if (useMouseForCamera) {
-        cameraMoved = true;
-        shader.setBool("u_cameraMoved", cameraMoved);
+    Material::Material() = default;
+    Material::Material(int type, glm::vec3 color, float fuzz, float refIndex, float emissionStrength) {
+        this->type = type;
+        this->color = color;
+        this->fuzz = fuzz;
+        this->refIndex = refIndex;
+        this->emissionStrength = emissionStrength;
     }
-    glfwGetCursorPos(window, &mouseX, &mouseY);
-    if (point) {
+
+    Sphere::Sphere() = default;
+    Sphere::Sphere(glm::vec3 center, float radius, Material mat) {
+        this->center = center;
+        this->radius = radius;
+        this->mat = mat;
+    }
+
+    Triangle::Triangle() = default;
+    Triangle::Triangle(glm::vec3 pointA, glm::vec3 pointB, glm::vec3 pointC, Material mat) {
+        this->pointA = pointA;
+        this->pointB = pointB;
+        this->pointC = pointC;
+        this->mat = mat;
+    }
+
+    Light::Light() = default;
+    Light::Light(int type, glm::vec3 pos, glm::vec3 dir, glm::vec3 color, float maxIntensity, bool softShadows) {
+        this->type = type;
+        this->pos = pos;
+        this->dir = dir;
+        this->color = color;
+        this->maxIntensity = maxIntensity;
+        this->softShadows = softShadows;
+    }
+
+    std::vector<Sphere> spheres;
+    std::vector<Light> lights;
+
+    void initialize(Shader shader, int screenWidth, int screenHeight) {
+        screenPixels = glm::vec2(screenWidth, screenHeight);
+        aspectRatio = float(screenWidth)/float(screenHeight);
+        fov = 70.0f;
+        camPos = glm::vec3(0, 0, -10);
+        camLookAt = glm::vec3(0, 0, 0);
+        upDir = glm::vec3(0, 1, 0);
+        raysPerPixel = 10;
+        maxBounceLimit = 20;
+        shadowRays = 10;
+        useMouseForCamera = false;
+
+        initializeUniforms(shader);
+    }
+
+    void initializeUniforms(Shader shader) {
+        shader.setFloat("INFINITY", INFINITY);
+        shader.setVec2("u_screenPixels", screenPixels);
+        shader.setFloat("u_aspectRatio", aspectRatio);
+        shader.setFloat("u_fov", fov);
+        shader.setVec3("u_camPos", camPos);
+        shader.setVec3("u_camLookAt", camLookAt);
+        shader.setVec3("u_upDir", upDir);
+        shader.setInt("u_raysPerPixel", raysPerPixel);
+        shader.setInt("u_maxBounceLimit", maxBounceLimit);
+        shader.setInt("u_shadowRays", shadowRays);
+
+        /*for (int i = 0; i < 9; i++) {
+            shader.setVec3(std::string("u_spheres[").append(std::to_string(i)).append("].center").c_str(), rng(-2, 2), rng(-1, 1), rng(2, 6));
+            shader.setFloat(std::string("u_spheres[").append(std::to_string(i)).append("].radius").c_str(), rng(0.25f, 1));
+            shader.setVec3(std::string("u_spheres[").append(std::to_string(i)).append("].mat.color").c_str(), rng(0, 1), rng(0, 1), rng(0, 1));
+            shader.setVec3(std::string("u_spheres[").append(std::to_string(i)).append("].mat.emission").c_str(), rng(0, 1), rng(0, 1), rng(0, 1));
+        }*/
+        
+        shader.setVec3(std::string("u_spheres[").append(std::to_string(0)).append("].center").c_str(), 0, 0, 0);
+        shader.setFloat(std::string("u_spheres[").append(std::to_string(0)).append("].radius").c_str(), 1);
+        shader.setVec3(std::string("u_spheres[").append(std::to_string(0)).append("].mat.color").c_str(), 1.0f, 1.0f, 1.0f);
+        shader.setInt(std::string("u_spheres[").append(std::to_string(0)).append("].mat.type").c_str(), 1);
+        shader.setFloat(std::string("u_spheres[").append(std::to_string(0)).append("].mat.fuzz").c_str(), 0.1f);
+
+        shader.setVec3(std::string("u_spheres[").append(std::to_string(1)).append("].center").c_str(), 3, 0, 5);
+        shader.setFloat(std::string("u_spheres[").append(std::to_string(1)).append("].radius").c_str(), 1);
+        shader.setVec3(std::string("u_spheres[").append(std::to_string(1)).append("].mat.color").c_str(), 0.2f, 0.8f, 0.2f);
+        shader.setInt(std::string("u_spheres[").append(std::to_string(1)).append("].mat.type").c_str(), 3);
+        shader.setFloat(std::string("u_spheres[").append(std::to_string(1)).append("].mat.emissionStrength").c_str(), 6);
+
+        shader.setVec3(std::string("u_spheres[").append(std::to_string(2)).append("].center").c_str(), -3, 0, 5);
+        shader.setFloat(std::string("u_spheres[").append(std::to_string(2)).append("].radius").c_str(), 1);
+        shader.setVec3(std::string("u_spheres[").append(std::to_string(2)).append("].mat.color").c_str(), 0.8f, 0.2f, 0.2f);
+        shader.setInt(std::string("u_spheres[").append(std::to_string(2)).append("].mat.type").c_str(), 0);
+
+        shader.setVec3(std::string("u_spheres[").append(std::to_string(3)).append("].center").c_str(), 0, -21, 5);
+        shader.setFloat(std::string("u_spheres[").append(std::to_string(3)).append("].radius").c_str(), 20);
+        shader.setVec3(std::string("u_spheres[").append(std::to_string(3)).append("].mat.color").c_str(), 0.4f, 0.1f, 0.5f);
+        shader.setInt(std::string("u_spheres[").append(std::to_string(3)).append("].mat.type").c_str(), 0);
+
+        shader.setVec3(std::string("u_triangles[").append(std::to_string(0)).append("].pointA").c_str(), 0, -1, 5);
+        shader.setVec3(std::string("u_triangles[").append(std::to_string(0)).append("].pointB").c_str(), 3, 4, 5);
+        shader.setVec3(std::string("u_triangles[").append(std::to_string(0)).append("].pointC").c_str(), 0, 2, 5);
+        shader.setInt(std::string("u_triangles[").append(std::to_string(0)).append("].mat.type").c_str(), 3);
+        shader.setInt(std::string("u_triangles[").append(std::to_string(0)).append("].mat.emissionStrength").c_str(), 9);
+        shader.setVec3(std::string("u_triangles[").append(std::to_string(0)).append("].mat.color").c_str(), 1, 1, 1);
+    }
+
+    double mouseX, mouseY;
+    double deltaTime = 0.0f;
+    void update(Shader shader, GLFWwindow* window, int screenWidth, int screenHeight) {
+        timeElapsed = glfwGetTime();
+        glfwGetCursorPos(window, &mouseX, &mouseY);
+        mousePos = glm::vec2(float(mouseX/screenWidth), float(mouseY/screenHeight));
+        updateUniforms(shader, window, screenWidth, screenHeight);
+    }
+
+    void updateUniforms(Shader shader, GLFWwindow* window, int scrWidth, int scrHeight) {
+        shader.setFloat("u_time", timeElapsed);
+        shader.setVec2("u_mosuePos", mousePos);
+        shader.setFloat("u_fov", fov);
+        shader.setVec3("u_camPos", camPos);
+        shader.setVec3("u_camLookAt", camLookAt);
+        shader.setInt("u_raysPerPixel", raysPerPixel);
+        shader.setInt("u_maxBounceLimit", maxBounceLimit);
+        shader.setInt("u_shadowRays", shadowRays);
         //shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].pos").c_str(), 0, 3, 5);
         shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].color").c_str(), 1, 1, 1);
         shader.setInt(std::string("u_lights[").append(std::to_string(0)).append("].type").c_str(), 0);
         shader.setFloat(std::string("u_lights[").append(std::to_string(0)).append("].maxIntensity").c_str(), 9);
-    } else {
         //shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].dir").c_str(), 0, 3, 5);
         shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].color").c_str(), 1, 1, 1);
         shader.setInt(std::string("u_lights[").append(std::to_string(0)).append("].type").c_str(), 1);
         shader.setFloat(std::string("u_lights[").append(std::to_string(0)).append("].maxIntensity").c_str(), 1);
+        shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].pos").c_str(), -(mouseX - float(scrWidth)/2)/100, -(mouseY - float(scrHeight)/2)/100, 5);
+        shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].dir").c_str(), -(mouseX - float(scrWidth)/2)/20, -(mouseY - float(scrHeight)/2)/20, -5);
+        shader.setVec3(std::string("u_spheres[").append(std::to_string(1)).append("].center").c_str(), 3, std::sin(glfwGetTime()), 5);
+        //shader.setFloat(std::string("u_spheres[").append(std::to_string(0)).append("].mat.emissionStrength").c_str(), 6.0f * std::abs(0.3f + std::sin(glfwGetTime())));
     }
-    if (!useMouseForCamera) {
-        if (point)
-            shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].pos").c_str(), -(mouseX - float(scrWidth)/2)/100, -(mouseY - float(scrHeight)/2)/100, 5);
-        else
-            shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].dir").c_str(), -(mouseX - float(scrWidth)/2)/20, -(mouseY - float(scrHeight)/2)/20, -5);
-    }
-    shader.setVec3(std::string("u_spheres[").append(std::to_string(1)).append("].center").c_str(), 3, std::sin(glfwGetTime()), 5);
-    //shader.setFloat(std::string("u_spheres[").append(std::to_string(0)).append("].mat.emissionStrength").c_str(), 6.0f * std::abs(0.3f + std::sin(glfwGetTime())));
+
 }

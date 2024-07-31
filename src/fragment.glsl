@@ -4,9 +4,6 @@
 #define EPSILON 0.0001
 #define MAX_OBJECT_COUNT 10
 #define MAX_LIGHT_COUNT 5
-#define MAX_BOUNCE_LIMIT 20
-#define RAYS_PER_PIXEL 10
-#define SHADOW_RAYS 10
 #define LIGHT_RADIUS 0.2
 
 in vec2 uv;
@@ -22,21 +19,18 @@ uniform float u_aspectRatio;
 uniform vec2 u_mousePos;
 uniform float u_fov;
 
-uniform vec3 u_initCamPos;
-uniform vec3 u_initCamDir;
+uniform vec3 u_camPos;
+uniform vec3 u_camLookAt;
 uniform vec3 u_upDir;
 
-uniform bool u_softShadows;
-
-uniform float u_blur;
+uniform int u_shadowRays;
+uniform int u_raysPerPixel;
+uniform int u_maxBounceLimit;
 
 //uniform sampler2D u_screenTexture;
 //uniform int u_accumulatedPasses;
 //uniform bool u_directOutputPass;
 //uniform int u_framePasses;
-
-uniform bool u_useMouseForCamera;
-uniform bool u_cameraMoved;
 
 float deg2rad(float deg) {
     float rad = deg * PI / 180.0f;
@@ -50,7 +44,7 @@ struct Camera {
     vec3 vertical;
 };
 
-Camera camera(float fov, float aspectRatio, vec3 lookFrom, vec3 lookAt, vec3 vup) {
+Camera getCamFromLookAt(float fov, float aspectRatio, vec3 lookFrom, vec3 lookAt, vec3 vup) {
     float theta = deg2rad(fov);
     float h = tan(theta/2.0f);
     float viewportHeight = h * 2.0f;
@@ -103,6 +97,11 @@ struct HitInfo {
     Material mat;
 };
 
+HitInfo initializeHitInfo() {
+    HitInfo hitInfo = {false, INFINITY, vec3(0), vec3(0), {0, vec3(0), 0, 0, 0}};
+    return hitInfo;
+}
+
 struct Sphere {
     vec3 center;
     float radius;
@@ -122,6 +121,7 @@ struct Light {
     vec3 dir; //for type = 1
     vec3 color;
     float maxIntensity; //inverse square law for type = 0, constant for type = 1
+    bool softShadows;
 };
 
 uniform Sphere u_spheres[MAX_OBJECT_COUNT];
@@ -198,7 +198,7 @@ float schlick(float cos, float refIndex) {
 }
 
 HitInfo sphereIntersection(Ray ray, Sphere sphere) {
-    HitInfo hitInfo = {false, 0, vec3(0), vec3(0), {0, vec3(0), 0, 0, 0}};
+    HitInfo hitInfo = initializeHitInfo();
 
     /*
         * if (P-C).(P-C)=r^2 where P=A+tB vector and C=center
@@ -246,7 +246,7 @@ HitInfo triangleIntersection(Ray ray, Triangle triangle) {
     float v = -dot(AB, dao) / det;
     float w = 1 - u - v;
     
-    HitInfo hitInfo = {false, 0, vec3(0), vec3(0), {0, vec3(0), 0, 0, 0}};
+    HitInfo hitInfo = initializeHitInfo();
     hitInfo.hit = det >= EPSILON && dist >= 0 && u >= 0 && v >= 0 && w >= 0;
     hitInfo.hitPoint = ray.origin + ray.direction * dist;
     hitInfo.normal = normalize(normal);
@@ -291,7 +291,7 @@ vec3 GetEnvironmentLight(vec3 dir)
 }
 
 HitInfo rayCollision(Ray ray) {
-    HitInfo closest = {false, (INFINITY), vec3(0), vec3(0), {0, vec3(0), 0, 0, 0}};
+    HitInfo closest = initializeHitInfo(); 
 
     for (int i = 0; i < u_spheres.length(); i++) {
         Sphere sphere = u_spheres[i];
@@ -339,9 +339,9 @@ vec3 computeDirectIllumination(Ray ray, HitInfo hitInfo, uint seed) {
                 if (lightDistance > calculatePointLightReach(light, lightDistance)) continue;
                 float diffuse = clamp(dot(hitInfo.normal, normalize(light.pos - hitInfo.hitPoint)), 0, 1);
 
-                if (u_softShadows) {
+                if (light.softShadows) {
                     if (diffuse > EPSILON) {
-                        int shadowRays = int(SHADOW_RAYS * LIGHT_RADIUS * LIGHT_RADIUS / (lightDistance * lightDistance) + 1);
+                        int shadowRays = int(u_shadowRays * LIGHT_RADIUS * LIGHT_RADIUS / (lightDistance * lightDistance) + 1);
                         int shadowRayHits = 0;
 
                         for (int i = 0; i < shadowRays; i++) {
@@ -396,7 +396,7 @@ vec3 computeRayColor(Ray ray, inout uint seed) {
     vec3 incomingLight = vec3(0);
     vec3 rayColor = vec3(1);
 
-    for (int i = 0; i <= MAX_BOUNCE_LIMIT; i++) {
+    for (int i = 0; i <= u_maxBounceLimit; i++) {
         HitInfo hitInfo = rayCollision(ray);
 
         if (hitInfo.hit) {
@@ -435,8 +435,7 @@ vec3 computeRayColor(Ray ray, inout uint seed) {
                     break;
             }
 
-            //float lightStrength = dot(hitInfo.normal, ray.direction);
-            rayColor *= hitInfo.mat.color;// * lightStrength;
+            rayColor *= hitInfo.mat.color;
             incomingLight += emittedLight * rayColor;
 
             incomingLight += rayColor * computeDirectIllumination(ray, hitInfo, seed);
@@ -455,7 +454,7 @@ void main() {
     vec2 m = vec2(u_mousePos.x * u_aspectRatio, u_mousePos.y); 
 
     // Initialization
-    Camera cam = camera(u_fov, u_aspectRatio, u_initCamPos, u_initCamDir, u_upDir);
+    Camera cam = getCamFromLookAt(u_fov, u_aspectRatio, u_camPos, u_camLookAt, u_upDir);
 
     /*Ray ray = getRayFromScreen(cam, normalized_uv.x, normalized_uv.y);
     vec3 ro, rd;
@@ -481,13 +480,13 @@ void main() {
 
         // Coloring
         vec3 totalIncomingLight = vec3(0);
-        for (int i = 0; i < RAYS_PER_PIXEL; i++) {
+        for (int i = 0; i < u_raysPerPixel; i++) {
             float u = ((normalized_uv.x * u_screenPixels.x) + (fract(random(pixelIndex + i)) - 0.5f)) / u_screenPixels.x;
             float v = ((normalized_uv.y * u_screenPixels.y) + (fract(random(pixelIndex + i+1)) - 0.5f)) / u_screenPixels.y;
             Ray ray = getRayFromScreen(cam, u, v);
             totalIncomingLight += computeRayColor(ray, seed);
         }
-        vec3 col = totalIncomingLight / RAYS_PER_PIXEL;
+        vec3 col = totalIncomingLight / u_raysPerPixel;
         FragColor = vec4(col, 1); 
     //}
 }

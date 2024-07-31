@@ -1,15 +1,8 @@
 #include <iostream>
 #include "gui.h"
-#include "imgui/imgui.h"
-#include "shader.h"
-#include "glad/glad.h"
-#include "glfw/glfw3.h"
-//#include "glm/glm.hpp"
-//#include "glm/gtc/matrix_transform.hpp"
-//#include "glm/gtc/type_ptr.hpp"
 #include <string>
-#include "scene.h"
 #include <chrono>
+#include <filesystem>
 
 const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
@@ -17,8 +10,9 @@ const unsigned int SCR_HEIGHT = 720;
 unsigned int screenWidth = SCR_WIDTH;
 unsigned int screenHeight = SCR_HEIGHT;
 
-const std::string VERT_PATH = "/home/thesynthax/projects/cpp/raytracer/src/vertex.glsl";
-const std::string FRAG_PATH = "/home/thesynthax/projects/cpp/raytracer/src/fragment.glsl";
+std::filesystem::path srcDir = std::filesystem::current_path().parent_path().concat("/src");
+const std::string VERT_PATH = (std::string)srcDir + "/vertex.glsl";
+const std::string FRAG_PATH = (std::string)srcDir + "/fragment.glsl";
 
 //GLuint screenTexture;
 
@@ -29,7 +23,6 @@ void frameBufferSizeCallback(GLFWwindow* window, int width, int height) {
 }
 
 int main() {
-
     //Window Initialization
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -88,12 +81,13 @@ int main() {
 
     lastTime = std::chrono::steady_clock::now();
     
-    ImGuiIO& io = initGUI(window);
+    initGUI(window);
 
     //Shader Initialization and main code loop
     Shader shader(VERT_PATH, FRAG_PATH);
     shader.use();
-    initializeUniforms(shader);
+    Scene::initialize(shader, screenWidth, screenHeight);
+    //initializeUniforms(shader);
     //shader.setInt("u_screenTexture", 0);
 
     //int accumulatedPasses = 0;
@@ -102,22 +96,8 @@ int main() {
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-        initFrame();
 
-        updateUniforms(shader, window, screenWidth, screenHeight);
-
-        shader.setVec2("u_screenPixels", screenWidth, screenHeight);
-        shader.setFloat("u_aspectRatio", (float)screenWidth/(float)screenHeight);
-        
-        float timeValue = glfwGetTime();
-        shader.setFloat("u_time", timeValue);
-        
-        glfwGetCursorPos(window, &mouseX, &mouseY);
-        shader.setVec2("u_mousePos", (float)(mouseX/screenWidth), 1.0f - (float)(mouseY/screenHeight));
-
-        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) setPoint();
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) setSoftShadows();
-        if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS) setUseMouseForCamera();
+        Scene::update(shader, window, screenWidth, screenHeight);
 
 		glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -131,7 +111,7 @@ int main() {
 		//shader.setBool("u_directOutputPass", true);
 		//glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        drawFrame(io);
+        renderGUI();
 
         /*auto currentTime = std::chrono::steady_clock::now();
         float elapsedTime = std::chrono::duration_cast<std::chrono::duration<float>>(currentTime - lastTime).count();

@@ -62,6 +62,12 @@ void Shader::setVec2(const char* name, float v1, float v2) const {
 void Shader::setVec3(const char* name, float v1, float v2, float v3) const { 
     glUniform3f(glGetUniformLocation(ID, name), v1, v2, v3); 
 }
+void Shader::setVec2(const char* name, glm::vec2 v) const { 
+    glUniform2f(glGetUniformLocation(ID, name), v.x, v.y); 
+}
+void Shader::setVec3(const char* name, glm::vec3 v) const { 
+    glUniform3f(glGetUniformLocation(ID, name), v.x, v.y, v.z); 
+}
 bool Shader::getBool(const char* name) const {
     int *v;
     glGetUniformiv(ID, glGetUniformLocation(ID, name), v);
