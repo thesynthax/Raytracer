@@ -22,6 +22,15 @@ void frameBufferSizeCallback(GLFWwindow* window, int width, int height) {
     screenHeight = height;
 }
 
+void mouseButtonCallback(GLFWwindow* window, int button, int action) {
+    if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS) {
+        double mouseX, mouseY;
+        glfwGetCursorPos(window, &mouseX, &mouseY);
+
+        //Scene::sphereSelect();
+    }
+}
+
 int main() {
     //Window Initialization
 	glfwInit();

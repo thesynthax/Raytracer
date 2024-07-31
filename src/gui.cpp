@@ -71,9 +71,15 @@ void cameraSettingsUI() {
     }
 
     if (!Scene::useMouseForCamera) {
+        ImGui::Text("Camera to Screen Distance");
+        ImGui::SameLine();
+        if (ImGui::SliderFloat("##rayOriginToScreen", &Scene::rayOriginToScreenDistance, 0, 2)) {
+            refresh = true;
+        }
+        
         ImGui::Text("Field of View");
         ImGui::SameLine();
-        if (ImGui::InputFloat("##fov", &Scene::fov)) {
+        if (ImGui::SliderFloat("##fov", &Scene::fov, 0, 180)) {
             refresh = true;
         }
         

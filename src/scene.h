@@ -24,6 +24,7 @@ namespace Scene {
     extern glm::vec3 camPos;
     extern glm::vec3 camLookAt;
     extern glm::vec3 upDir;
+    extern float rayOriginToScreenDistance;
     extern bool useMouseForCamera;
 
     struct Material {
@@ -65,5 +66,5 @@ namespace Scene {
     void initializeUniforms(Shader shader);
     void update(Shader shader, GLFWwindow* window, int screenWidth, int screenHeight);
     void updateUniforms(Shader shader, GLFWwindow* window, int scrWidth, int scrHeight);
-
+    void sphereSelect();
 }

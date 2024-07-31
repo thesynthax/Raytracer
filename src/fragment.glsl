@@ -22,6 +22,8 @@ uniform float u_fov;
 uniform vec3 u_camPos;
 uniform vec3 u_camLookAt;
 uniform vec3 u_upDir;
+uniform float u_rayOriginToScreenDistance;
+uniform mat4 u_rotationMatrix;
 
 uniform int u_shadowRays;
 uniform int u_raysPerPixel;
@@ -42,23 +44,24 @@ struct Camera {
     vec3 llc;
     vec3 horizontal;
     vec3 vertical;
+    vec3 forward;
+    vec3 right;
+    vec3 up;
 };
 
-Camera getCamFromLookAt(float fov, float aspectRatio, vec3 lookFrom, vec3 lookAt, vec3 vup) {
-    float theta = deg2rad(fov);
-    float h = tan(theta/2.0f);
-    float viewportHeight = h * 2.0f;
+Camera getCamFromLookAt(float fov, float aspectRatio, vec3 lookFrom, vec3 lookAt, vec3 vup, float rayOriginToScreenDistance) {
+    float viewportHeight = rayOriginToScreenDistance * tan(deg2rad(fov)/2.0f)* 2.0f;
     float viewportWidth = viewportHeight * aspectRatio;
 
-    vec3 w = normalize(lookFrom - lookAt);
-    vec3 u = normalize(cross(vup, w));
-    vec3 v = cross(w, u);
-
     Camera cam;
+    cam.forward = normalize(lookFrom - lookAt);
+    cam.right = normalize(cross(vup, cam.forward));
+    cam.up = cross(cam.forward, cam.right);
+
     cam.position = lookFrom;
-    cam.horizontal = u * viewportWidth;
-    cam.vertical = v * viewportHeight;
-    cam.llc = cam.position - cam.horizontal / 2.0f - cam.vertical / 2.0f - w;
+    cam.horizontal = cam.right * viewportWidth;
+    cam.vertical = cam.up * viewportHeight;
+    cam.llc = cam.position - cam.horizontal / 2.0f - cam.vertical / 2.0f - cam.forward;
     return cam;
 }
 
@@ -454,7 +457,7 @@ void main() {
     vec2 m = vec2(u_mousePos.x * u_aspectRatio, u_mousePos.y); 
 
     // Initialization
-    Camera cam = getCamFromLookAt(u_fov, u_aspectRatio, u_camPos, u_camLookAt, u_upDir);
+    Camera cam = getCamFromLookAt(u_fov, u_aspectRatio, u_camPos, u_camLookAt, u_upDir, u_rayOriginToScreenDistance);
 
     /*Ray ray = getRayFromScreen(cam, normalized_uv.x, normalized_uv.y);
     //if (u_directOutputPass) {
