@@ -1,5 +1,8 @@
 #include "scene.h"
 #include "glm/common.hpp"
+#include "glm/ext/matrix_float2x2.hpp"
+#include <GLFW/glfw3.h>
+#include <cmath>
 
 namespace Scene {
 
@@ -55,6 +58,13 @@ namespace Scene {
 
     std::vector<Sphere> spheres;
     std::vector<Light> lights;
+
+    glm::mat2 rot2d(float angle) {
+        float s = std::sin(angle);
+        float c = std::cos(angle);
+
+        return glm::mat2(c, -s, s, c);
+    }
 
     void initialize(Shader shader, int screenWidth, int screenHeight) {
         screenPixels = glm::vec2(screenWidth, screenHeight);
@@ -127,27 +137,30 @@ namespace Scene {
         glfwGetCursorPos(window, &mouseX, &mouseY);
         mousePos = glm::vec2(float(mouseX/screenWidth), float(mouseY/screenHeight));
         updateUniforms(shader, window, screenWidth, screenHeight);
+        //glfwSetCursorPos(window, double(screenWidth) / 2, double(screenHeight) / 2);
     }
 
     void updateUniforms(Shader shader, GLFWwindow* window, int scrWidth, int scrHeight) {
         shader.setFloat("u_time", timeElapsed);
-        shader.setVec2("u_mosuePos", mousePos);
+        shader.setVec2("u_mousePos", mousePos);
         shader.setFloat("u_fov", fov);
         shader.setVec3("u_camPos", camPos);
         shader.setVec3("u_camLookAt", camLookAt);
         shader.setInt("u_raysPerPixel", raysPerPixel);
         shader.setInt("u_maxBounceLimit", maxBounceLimit);
         shader.setInt("u_shadowRays", shadowRays);
+
+
         //shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].pos").c_str(), 0, 3, 5);
         shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].color").c_str(), 1, 1, 1);
         shader.setInt(std::string("u_lights[").append(std::to_string(0)).append("].type").c_str(), 0);
         shader.setFloat(std::string("u_lights[").append(std::to_string(0)).append("].maxIntensity").c_str(), 9);
         //shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].dir").c_str(), 0, 3, 5);
-        shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].color").c_str(), 1, 1, 1);
-        shader.setInt(std::string("u_lights[").append(std::to_string(0)).append("].type").c_str(), 1);
-        shader.setFloat(std::string("u_lights[").append(std::to_string(0)).append("].maxIntensity").c_str(), 1);
+        shader.setVec3(std::string("u_lights[").append(std::to_string(1)).append("].color").c_str(), 1, 1, 1);
+        shader.setInt(std::string("u_lights[").append(std::to_string(1)).append("].type").c_str(), 1);
+        shader.setFloat(std::string("u_lights[").append(std::to_string(1)).append("].maxIntensity").c_str(), 1);
         shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].pos").c_str(), -(mouseX - float(scrWidth)/2)/100, -(mouseY - float(scrHeight)/2)/100, 5);
-        shader.setVec3(std::string("u_lights[").append(std::to_string(0)).append("].dir").c_str(), -(mouseX - float(scrWidth)/2)/20, -(mouseY - float(scrHeight)/2)/20, -5);
+        shader.setVec3(std::string("u_lights[").append(std::to_string(1)).append("].dir").c_str(), -(mouseX - float(scrWidth)/2)/20, -(mouseY - float(scrHeight)/2)/20, -5);
         shader.setVec3(std::string("u_spheres[").append(std::to_string(1)).append("].center").c_str(), 3, std::sin(glfwGetTime()), 5);
         //shader.setFloat(std::string("u_spheres[").append(std::to_string(0)).append("].mat.emissionStrength").c_str(), 6.0f * std::abs(0.3f + std::sin(glfwGetTime())));
     }

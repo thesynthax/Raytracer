@@ -457,21 +457,11 @@ void main() {
     Camera cam = getCamFromLookAt(u_fov, u_aspectRatio, u_camPos, u_camLookAt, u_upDir);
 
     /*Ray ray = getRayFromScreen(cam, normalized_uv.x, normalized_uv.y);
-    vec3 ro, rd;
     //if (u_directOutputPass) {
-        if (u_useMouseForCamera) {
-            ray.origin.yz *= rot2D(-m.y);
-            ray.direction.yz *= rot2D(-m.y);
-            ray.origin.xz *= rot2D(m.x);
-            ray.direction.xz *= rot2D(m.x);
-            ro = ray.origin;
-            rd = ray.direction;
-        }/* else {
-            if (u_cameraMoved) {
-                ray.origin = ro;
-                ray.direction = rd;
-            }
-        }*/
+        ray.origin.yz *= rot2D(-m.y);
+        ray.direction.yz *= rot2D(-m.y);
+        ray.origin.xz *= rot2D(m.x);
+        ray.direction.xz *= rot2D(m.x);*/
 
         //Taking current pixel as seed for RNG
         vec2 pixelCoord = uv * u_screenPixels;
@@ -484,6 +474,10 @@ void main() {
             float u = ((normalized_uv.x * u_screenPixels.x) + (fract(random(pixelIndex + i)) - 0.5f)) / u_screenPixels.x;
             float v = ((normalized_uv.y * u_screenPixels.y) + (fract(random(pixelIndex + i+1)) - 0.5f)) / u_screenPixels.y;
             Ray ray = getRayFromScreen(cam, u, v);
+            /*ray.origin.yz *= rot2D(m.y);
+            ray.direction.yz *= rot2D(m.y);
+            ray.origin.xz *= rot2D(m.x);
+            ray.direction.xz *= rot2D(m.x);*/
             totalIncomingLight += computeRayColor(ray, seed);
         }
         vec3 col = totalIncomingLight / u_raysPerPixel;
