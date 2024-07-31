@@ -5,7 +5,7 @@
 #define MAX_OBJECT_COUNT 10
 #define MAX_LIGHT_COUNT 5
 #define MAX_BOUNCE_LIMIT 20
-#define RAYS_PER_PIXEL 5
+#define RAYS_PER_PIXEL 10
 #define SHADOW_RAYS 10
 #define LIGHT_RADIUS 0.2
 
@@ -27,6 +27,8 @@ uniform vec3 u_initCamDir;
 uniform vec3 u_upDir;
 
 uniform bool u_softShadows;
+
+uniform float u_blur;
 
 //uniform sampler2D u_screenTexture;
 //uniform int u_accumulatedPasses;
@@ -455,7 +457,7 @@ void main() {
     // Initialization
     Camera cam = camera(u_fov, u_aspectRatio, u_initCamPos, u_initCamDir, u_upDir);
 
-    Ray ray = getRayFromScreen(cam, normalized_uv.x, normalized_uv.y);
+    /*Ray ray = getRayFromScreen(cam, normalized_uv.x, normalized_uv.y);
     vec3 ro, rd;
     //if (u_directOutputPass) {
         if (u_useMouseForCamera) {
@@ -480,6 +482,9 @@ void main() {
         // Coloring
         vec3 totalIncomingLight = vec3(0);
         for (int i = 0; i < RAYS_PER_PIXEL; i++) {
+            float u = ((normalized_uv.x * u_screenPixels.x) + (fract(random(pixelIndex + i)) - 0.5f)) / u_screenPixels.x;
+            float v = ((normalized_uv.y * u_screenPixels.y) + (fract(random(pixelIndex + i+1)) - 0.5f)) / u_screenPixels.y;
+            Ray ray = getRayFromScreen(cam, u, v);
             totalIncomingLight += computeRayColor(ray, seed);
         }
         vec3 col = totalIncomingLight / RAYS_PER_PIXEL;

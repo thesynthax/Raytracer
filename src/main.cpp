@@ -106,14 +106,14 @@ int main() {
 
         updateUniforms(shader, window, screenWidth, screenHeight);
 
-        shader.setVec2("u_screenPixels", SCR_WIDTH, SCR_HEIGHT);
-        shader.setFloat("u_aspectRatio", (float)SCR_WIDTH/(float)SCR_HEIGHT);
+        shader.setVec2("u_screenPixels", screenWidth, screenHeight);
+        shader.setFloat("u_aspectRatio", (float)screenWidth/(float)screenHeight);
         
         float timeValue = glfwGetTime();
         shader.setFloat("u_time", timeValue);
         
         glfwGetCursorPos(window, &mouseX, &mouseY);
-        shader.setVec2("u_mousePos", (float)(mouseX/SCR_WIDTH), 1.0f - (float)(mouseY/SCR_HEIGHT));
+        shader.setVec2("u_mousePos", (float)(mouseX/screenWidth), 1.0f - (float)(mouseY/screenHeight));
 
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) setPoint();
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) setSoftShadows();

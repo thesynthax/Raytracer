@@ -24,6 +24,8 @@ void initializeUniforms(Shader shader) {
     shader.setVec3("u_initCamDir", 0, 0, 0);
     shader.setVec3("u_upDir", 0, 1, 0);
 
+    shader.setFloat("u_blur", 0.0005);
+
     shader.setBool("u_cameraMoved", cameraMoved);
 
     /*for (int i = 0; i < 9; i++) {
