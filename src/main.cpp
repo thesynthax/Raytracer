@@ -1,5 +1,6 @@
 #include <iostream>
 #include "gui.h"
+#include "glad/glad.h"
 #include <string>
 #include <chrono>
 #include <filesystem>
@@ -22,12 +23,12 @@ void frameBufferSizeCallback(GLFWwindow* window, int width, int height) {
     screenHeight = height;
 }
 
-void mouseButtonCallback(GLFWwindow* window, int button, int action) {
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS) {
         double mouseX, mouseY;
         glfwGetCursorPos(window, &mouseX, &mouseY);
 
-        //Scene::sphereSelect();
+        Scene::sphereSelect(mouseX, mouseY, screenWidth, screenHeight);
     }
 }
 
@@ -45,6 +46,7 @@ int main() {
 		return -1;
 	}
     glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
 
     double mouseX, mouseY;
 	glfwMakeContextCurrent(window);

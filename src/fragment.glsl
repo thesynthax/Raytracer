@@ -5,6 +5,8 @@
 #define MAX_OBJECT_COUNT 10
 #define MAX_LIGHT_COUNT 5
 #define LIGHT_RADIUS 0.2
+#define OUTLINE_COLOR vec4(1.0f, 0.0f, 1.0f, 1.0f)
+#define OUTLINE_WIDTH 0.04
 
 in vec2 uv;
 
@@ -28,6 +30,8 @@ uniform mat4 u_rotationMatrix;
 uniform int u_shadowRays;
 uniform int u_raysPerPixel;
 uniform int u_maxBounceLimit;
+
+uniform int u_selectedObjectIndex;
 
 //uniform sampler2D u_screenTexture;
 //uniform int u_accumulatedPasses;
@@ -77,7 +81,7 @@ Ray getRay(vec3 origin, vec3 direction) {
     return ray;
 }
 
-Ray getRayFromScreen(Camera cam, float u, float v) {
+Ray getRayFromCam(Camera cam, float u, float v) {
     Ray ray;
     ray.origin = cam.position;
     ray.direction = cam.llc + cam.horizontal * u + cam.vertical * v - cam.position;
@@ -476,14 +480,29 @@ void main() {
         for (int i = 0; i < u_raysPerPixel; i++) {
             float u = ((normalized_uv.x * u_screenPixels.x) + (fract(random(pixelIndex + i)) - 0.5f)) / u_screenPixels.x;
             float v = ((normalized_uv.y * u_screenPixels.y) + (fract(random(pixelIndex + i+1)) - 0.5f)) / u_screenPixels.y;
-            Ray ray = getRayFromScreen(cam, u, v);
+            Ray ray = getRayFromCam(cam, u, v);
             /*ray.origin.yz *= rot2D(m.y);
             ray.direction.yz *= rot2D(m.y);
             ray.origin.xz *= rot2D(m.x);
             ray.direction.xz *= rot2D(m.x);*/
             totalIncomingLight += computeRayColor(ray, seed);
+
+            if (u_selectedObjectIndex >= 0) {
+                Sphere sphere = u_spheres[u_selectedObjectIndex];
+                float selectedObjectDist = length(sphere.center - u_camPos);
+                Sphere outlineSphere = {sphere.center, sphere.radius + OUTLINE_WIDTH*selectedObjectDist, sphere.mat};
+
+                HitInfo outline = sphereIntersection(ray, outlineSphere);
+                if (outline.hit) {
+                    HitInfo inner = sphereIntersection(ray, sphere);
+                    if (!inner.hit)
+                        FragColor = OUTLINE_COLOR;
+                }
+            }
         }
         vec3 col = totalIncomingLight / u_raysPerPixel;
         FragColor = vec4(col, 1); 
+
+        
     //}
 }
