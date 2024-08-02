@@ -5,7 +5,7 @@
 #define MAX_OBJECT_COUNT 10
 #define MAX_LIGHT_COUNT 5
 #define LIGHT_RADIUS 0.2
-#define OUTLINE_COLOR vec4(1.0f, 0.0f, 1.0f, 1.0f)
+#define OUTLINE_COLOR vec3(1.0f, 0.0f, 1.0f)
 #define OUTLINE_WIDTH 0.04
 
 in vec2 uv;
@@ -463,19 +463,20 @@ void main() {
     // Initialization
     Camera cam = getCamFromLookAt(u_fov, u_aspectRatio, u_camPos, u_camLookAt, u_upDir, u_rayOriginToScreenDistance);
 
-    /*Ray ray = getRayFromScreen(cam, normalized_uv.x, normalized_uv.y);
-    //if (u_directOutputPass) {
+    //Ray ray = getRayFromCam(cam, normalized_uv.x, normalized_uv.y);
+    /*if (u_directOutputPass) {
         ray.origin.yz *= rot2D(-m.y);
         ray.direction.yz *= rot2D(-m.y);
         ray.origin.xz *= rot2D(m.x);
         ray.direction.xz *= rot2D(m.x);*/
-
+        
         //Taking current pixel as seed for RNG
         vec2 pixelCoord = uv * u_screenPixels;
         uint pixelIndex = int(pixelCoord.y) * int(u_screenPixels.x) + int(pixelCoord.x);
         uint seed = pixelIndex;
 
         // Coloring
+        vec3 pixelColor = vec3(0);
         vec3 totalIncomingLight = vec3(0);
         for (int i = 0; i < u_raysPerPixel; i++) {
             float u = ((normalized_uv.x * u_screenPixels.x) + (fract(random(pixelIndex + i)) - 0.5f)) / u_screenPixels.x;
@@ -489,19 +490,22 @@ void main() {
 
             if (u_selectedObjectIndex >= 0) {
                 Sphere sphere = u_spheres[u_selectedObjectIndex];
-                float selectedObjectDist = length(sphere.center - u_camPos);
-                Sphere outlineSphere = {sphere.center, sphere.radius + OUTLINE_WIDTH*selectedObjectDist, sphere.mat};
+                Sphere outlineSphere = {sphere.center, sphere.radius + OUTLINE_WIDTH, sphere.mat};
 
                 HitInfo outline = sphereIntersection(ray, outlineSphere);
                 if (outline.hit) {
                     HitInfo inner = sphereIntersection(ray, sphere);
-                    if (!inner.hit)
-                        FragColor = OUTLINE_COLOR;
+                    if (!inner.hit) {
+                        FragColor = vec4(OUTLINE_COLOR, 1);
+                        return;
+                    }
                 }
+                
             }
         }
-        vec3 col = totalIncomingLight / u_raysPerPixel;
-        FragColor = vec4(col, 1); 
+        pixelColor = totalIncomingLight / u_raysPerPixel;
+        
+        FragColor = vec4(pixelColor, 1); 
 
         
     //}

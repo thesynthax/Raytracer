@@ -188,6 +188,16 @@ void updateUniforms(Shader shader, GLFWwindow* window, int scrWidth, int scrHeig
     shader.setInt("u_shadowRays", shadowRays);
     shader.setInt("u_selectedObjectIndex", selectedObjectIndex);
 
+    for (int i = 0; i < spheres.size(); i++) {
+        shader.setVec3(std::string("u_spheres[").append(std::to_string(i)).append("].center").c_str(), spheres[i].center);
+        shader.setFloat(std::string("u_spheres[").append(std::to_string(i)).append("].radius").c_str(), spheres[i].radius);
+        shader.setVec3(std::string("u_spheres[").append(std::to_string(i)).append("].mat.color").c_str(), spheres[i].mat.color);
+        shader.setInt(std::string("u_spheres[").append(std::to_string(i)).append("].mat.type").c_str(), spheres[i].mat.type);
+        shader.setFloat(std::string("u_spheres[").append(std::to_string(i)).append("].mat.fuzz").c_str(), spheres[i].mat.fuzz);
+        shader.setFloat(std::string("u_spheres[").append(std::to_string(i)).append("].mat.refIndex").c_str(), spheres[i].mat.refIndex);
+        shader.setFloat(std::string("u_spheres[").append(std::to_string(i)).append("].mat.emissionStrength").c_str(), spheres[i].mat.emissionStrength);
+    }
+
     for (int i = 0; i < lights.size(); i++) {
         shader.setInt(std::string("u_lights[").append(std::to_string(i)).append("].type").c_str(), lights[i].type);
         shader.setVec3(std::string("u_lights[").append(std::to_string(i)).append("].pos").c_str(), lights[i].pos);
