@@ -34,6 +34,7 @@ glm::vec3 camLookAtFromSettings;
 int selectedObjectIndex;
 bool movingCamToSelectedObject;
 float camMoveSpeed;
+float camToObjDist;
 
 Camera getCam(float fov, float aspectRatio, glm::vec3 lookFrom, glm::vec3 lookAt, glm::vec3 vup, float rayOriginToScreenDistance) {
     float viewportHeight = rayOriginToScreenDistance * tan(glm::radians(fov)/2.0f)* 2.0f;
@@ -112,6 +113,7 @@ void initialize(Shader shader, int screenWidth, int screenHeight) {
     camMoveSpeed = 3;
     camPosFromSettings = camPos;
     camLookAtFromSettings = camLookAt;
+    camToObjDist = 4;
 
     spheres.push_back(Sphere(glm::vec3(0), 1, Material(1, glm::vec3(1), 0.1f, 0, 0)));
     spheres.push_back(Sphere(glm::vec3(3,0,5), 1, Material(3, glm::vec3(0.2f, 0.8f, 0.2f), 0, 0, 6)));
@@ -193,7 +195,7 @@ void update(Shader shader, GLFWwindow* window, int screenWidth, int screenHeight
         if (selectedObjectIndex >= 0) {
             finalLookAt = spheres[selectedObjectIndex].center;
             dir = glm::normalize(camPos - finalLookAt);
-            finalPos = finalLookAt + dir * 4.0f * spheres[selectedObjectIndex].radius;
+            finalPos = finalLookAt + dir * camToObjDist * spheres[selectedObjectIndex].radius;
         }
         else {
             finalPos = camPosFromSettings;
@@ -306,4 +308,13 @@ void sphereSelect(float mouseX, float mouseY, int screenWidth, int screenHeight)
     }
 }
 
+Sphere addNew() {
+    Camera cam = getCam(fov, aspectRatio, camPos, camLookAt, upDir, rayOriginToScreenDistance);
+    Ray ray = getRayToScreen(cam, 0.5f, 0.5f);
+    glm::vec3 center = ray.origin + ray.direction * camToObjDist;
+
+    Sphere sphere = Sphere(center, 1, Material(0, glm::vec3(1), 0, 0, 0));
+    spheres.push_back(sphere);
+    return sphere;
+}
 }

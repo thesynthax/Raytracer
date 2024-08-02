@@ -140,10 +140,10 @@ void cameraSettingsUI() {
 }
 
 void selectedObjectSettingsUI() {
-    ImGui::Begin("Selected Object Seetings");
-    ImGui::PushItemWidth(-1);
-
     if (Scene::selectedObjectIndex != -1) {
+        ImGui::Begin("Selected Object Seetings");
+        ImGui::PushItemWidth(-1);
+
         int i = Scene::selectedObjectIndex;
         std::string i_str = std::to_string(Scene::selectedObjectIndex);
         
@@ -208,7 +208,25 @@ void selectedObjectSettingsUI() {
                 break;
             }
         }
+        ImGui::Text(std::string("Delete").c_str());
+        ImGui::SameLine();
+        if (ImGui::Button("##delete")) {
+            Scene::spheres.erase(Scene::spheres.begin() + i);
+            refresh = true;
+        }
+    } else {
+        ImGui::Begin("Selected Object Seetings");
+        ImGui::PushItemWidth(-1);
+
+        ImGui::Text(std::string("Add New").c_str());
+        ImGui::SameLine();
+        if (ImGui::Button("##add")) {
+            Scene::addNew();
+            refresh = true;
+        }
     }
+
+
 
     ImGui::PopItemWidth();
     ImGui::End();

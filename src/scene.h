@@ -94,4 +94,5 @@ glm::vec3 lerpVec(glm::vec3 a, glm::vec3 b, float t);
 Ray getRayToScreen(Camera cam, float u, float v);
 bool sphereIntersection(Sphere sphere, Ray ray, float* dist);
 void sphereSelect(float mouseX, float mouseY, int screenWidth, int screenHeight);
+Sphere addNew();
 }
