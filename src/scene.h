@@ -1,6 +1,7 @@
 #include "shader.h"
 #include <string>
 #include <cmath>
+#include <vector>
 #include "random.h"
 #include "glfw/glfw3.h"
 #include "glm/glm.hpp"
@@ -25,6 +26,8 @@ extern glm::vec3 camLookAt;
 extern glm::vec3 upDir;
 extern float rayOriginToScreenDistance;
 extern bool useMouseForCamera;
+extern glm::vec3 camPosFromSettings;
+extern glm::vec3 camLookAtFromSettings;
 
 extern int selectedObjectIndex;
 
@@ -79,6 +82,8 @@ struct Light {
     Light(int type, glm::vec3 pos, glm::vec3 dir, glm::vec3 color, float maxIntensity, bool softShadows);
     Light();
 };
+extern std::vector<Sphere> spheres;
+extern std::vector<Light> lights;
 
 void initialize(Shader shader, int screenWidth, int screenHeight);
 void initializeUniforms(Shader shader);

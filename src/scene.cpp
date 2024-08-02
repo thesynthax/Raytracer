@@ -28,6 +28,8 @@ glm::vec3 camLookAt;
 glm::vec3 upDir;
 float rayOriginToScreenDistance;
 bool useMouseForCamera;
+glm::vec3 camPosFromSettings;
+glm::vec3 camLookAtFromSettings;
 
 int selectedObjectIndex;
 bool movingCamToSelectedObject;
@@ -108,6 +110,8 @@ void initialize(Shader shader, int screenWidth, int screenHeight) {
     selectedObjectIndex = -1;
     movingCamToSelectedObject = false;
     camMoveSpeed = 3;
+    camPosFromSettings = camPos;
+    camLookAtFromSettings = camLookAt;
 
     spheres.push_back(Sphere(glm::vec3(0), 1, Material(1, glm::vec3(1), 0.1f, 0, 0)));
     spheres.push_back(Sphere(glm::vec3(3,0,5), 1, Material(3, glm::vec3(0.2f, 0.8f, 0.2f), 0, 0, 6)));
@@ -189,16 +193,16 @@ void update(Shader shader, GLFWwindow* window, int screenWidth, int screenHeight
         if (selectedObjectIndex >= 0) {
             finalLookAt = spheres[selectedObjectIndex].center;
             dir = glm::normalize(camPos - finalLookAt);
-            finalPos = finalLookAt + dir * 2.5f * spheres[selectedObjectIndex].radius;
+            finalPos = finalLookAt + dir * 4.0f * spheres[selectedObjectIndex].radius;
         }
         else {
-            finalPos = glm::vec3(0,0,-10);
-            finalLookAt = glm::vec3(0);
+            finalPos = camPosFromSettings;
+            finalLookAt = camLookAtFromSettings;
         }
 
         moveCamToSelectedSphere(finalPos, finalLookAt, camMoveSpeed);
-    } else if (selectedObjectIndex == -1 && !movingCamToSelectedObject && camLookAt != glm::vec3(0)) {
-        moveCamToSelectedSphere(glm::vec3(0,0,-10), glm::vec3(0), camMoveSpeed);
+    } else if (selectedObjectIndex == -1 && !movingCamToSelectedObject && (camPos != camPosFromSettings || camLookAt != camLookAtFromSettings)) {
+        moveCamToSelectedSphere(camPosFromSettings, camLookAtFromSettings, camMoveSpeed);
     } 
 
     /*glm::vec2 camYZ = glm::vec2(camPos.y, camPos.z);
@@ -286,7 +290,6 @@ void sphereSelect(float mouseX, float mouseY, int screenWidth, int screenHeight)
     float u = mouseX / screenWidth;
     float v = 1.0f - mouseY / screenHeight;
     Camera cam = getCam(fov, aspectRatio, camPos, camLookAt, upDir, rayOriginToScreenDistance);
-    std::cout << glm::to_string(cam.llc) << std::endl;
     Ray ray = getRayToScreen(cam, u, v);
 
     float minDist = INFINITY;

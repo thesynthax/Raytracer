@@ -1,6 +1,7 @@
 #include <iostream>
 #include "gui.h"
 #include "glad/glad.h"
+#include "imgui/imgui.h"
 #include <string>
 #include <chrono>
 #include <filesystem>
@@ -27,10 +28,12 @@ void frameBufferSizeCallback(GLFWwindow* window, int width, int height) {
 
 void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS) {
-        double mouseX, mouseY;
-        glfwGetCursorPos(window, &mouseX, &mouseY);
+        if (!ImGui::GetIO().WantCaptureMouse) {
+            double mouseX, mouseY;
+            glfwGetCursorPos(window, &mouseX, &mouseY);
 
-        Scene::sphereSelect(mouseX, mouseY, screenWidth, screenHeight);
+            Scene::sphereSelect(mouseX, mouseY, screenWidth, screenHeight);
+        }
     }
 }
 
@@ -93,11 +96,11 @@ int main() {
 
     lastTime = std::chrono::steady_clock::now();
     
-    initGUI(window);
 
     //Shader Initialization and main code loop
     Shader shader(VERT_PATH, FRAG_PATH);
     shader.use();
+    initGUI(window);
     Scene::initialize(shader, screenWidth, screenHeight);
     //initializeUniforms(shader);
     //shader.setInt("u_screenTexture", 0);
