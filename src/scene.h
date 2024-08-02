@@ -33,7 +33,7 @@ struct Camera {
     glm::vec3 llc;
     glm::vec3 horizontal;
     glm::vec3 vertical;
-    glm::vec3 forward;
+    glm::vec3 backward;
     glm::vec3 right;
     glm::vec3 up;
 };
@@ -82,7 +82,11 @@ struct Light {
 
 void initialize(Shader shader, int screenWidth, int screenHeight);
 void initializeUniforms(Shader shader);
-void update(Shader shader, GLFWwindow* window, int screenWidth, int screenHeight);
+void update(Shader shader, GLFWwindow* window, int screenWidth, int screenHeight, double dTime);
 void updateUniforms(Shader shader, GLFWwindow* window, int scrWidth, int scrHeight);
+void moveCamToSelectedSphere(glm::vec3 newPos, glm::vec3 newLookAt, float speed);
+glm::vec3 lerpVec(glm::vec3 a, glm::vec3 b, float t);
+Ray getRayToScreen(Camera cam, float u, float v);
+bool sphereIntersection(Sphere sphere, Ray ray, float* dist);
 void sphereSelect(float mouseX, float mouseY, int screenWidth, int screenHeight);
 }

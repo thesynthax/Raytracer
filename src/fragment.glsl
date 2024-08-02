@@ -5,7 +5,7 @@
 #define MAX_OBJECT_COUNT 10
 #define MAX_LIGHT_COUNT 5
 #define LIGHT_RADIUS 0.2
-#define OUTLINE_COLOR vec3(1.0f, 0.0f, 1.0f)
+#define OUTLINE_COLOR vec3(0.1f, 1.0f, 0.1f)
 #define OUTLINE_WIDTH 0.04
 
 in vec2 uv;
@@ -48,7 +48,7 @@ struct Camera {
     vec3 llc;
     vec3 horizontal;
     vec3 vertical;
-    vec3 forward;
+    vec3 backward;
     vec3 right;
     vec3 up;
 };
@@ -58,14 +58,14 @@ Camera getCamFromLookAt(float fov, float aspectRatio, vec3 lookFrom, vec3 lookAt
     float viewportWidth = viewportHeight * aspectRatio;
 
     Camera cam;
-    cam.forward = normalize(lookFrom - lookAt);
-    cam.right = normalize(cross(vup, cam.forward));
-    cam.up = cross(cam.forward, cam.right);
+    cam.backward = normalize(lookFrom - lookAt);
+    cam.right = normalize(cross(vup, cam.backward));
+    cam.up = cross(cam.backward, cam.right);
 
     cam.position = lookFrom;
     cam.horizontal = cam.right * viewportWidth;
     cam.vertical = cam.up * viewportHeight;
-    cam.llc = cam.position - cam.horizontal / 2.0f - cam.vertical / 2.0f - cam.forward;
+    cam.llc = cam.position - cam.horizontal / 2.0f - cam.vertical / 2.0f - cam.backward;
     return cam;
 }
 
@@ -226,7 +226,7 @@ HitInfo sphereIntersection(Ray ray, Sphere sphere) {
     //float dist = ((-b - sqrt(disc)) / (2.0f * a)) > 0.0f ? ((-b - sqrt(disc)) / (2.0f * a)) : ((-b + sqrt(disc)) / (2.0f * a));
     float dist = (-b - sqrt(disc)) / (2.0f * a);
     if (dist <= 0.001 || dist >= INFINITY) {
-        dist = (-b - sqrt(disc)) / (2.0f * a);
+        dist = (-b + sqrt(disc)) / (2.0f * a);
         if (dist <= 0.001 || dist >= INFINITY) 
             return hitInfo;
     }
@@ -476,7 +476,6 @@ void main() {
         uint seed = pixelIndex;
 
         // Coloring
-        vec3 pixelColor = vec3(0);
         vec3 totalIncomingLight = vec3(0);
         for (int i = 0; i < u_raysPerPixel; i++) {
             float u = ((normalized_uv.x * u_screenPixels.x) + (fract(random(pixelIndex + i)) - 0.5f)) / u_screenPixels.x;
@@ -500,10 +499,9 @@ void main() {
                         return;
                     }
                 }
-                
             }
         }
-        pixelColor = totalIncomingLight / u_raysPerPixel;
+        vec3 pixelColor = totalIncomingLight / u_raysPerPixel;
         
         FragColor = vec4(pixelColor, 1); 
 

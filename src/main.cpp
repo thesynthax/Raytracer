@@ -15,6 +15,8 @@ std::filesystem::path srcDir = std::filesystem::current_path().parent_path().con
 const std::string VERT_PATH = (std::string)srcDir + "/vertex.glsl";
 const std::string FRAG_PATH = (std::string)srcDir + "/fragment.glsl";
 
+double deltaTime = 0.0f;
+
 //GLuint screenTexture;
 
 void frameBufferSizeCallback(GLFWwindow* window, int width, int height) {
@@ -87,7 +89,6 @@ int main() {
 
     std::chrono::steady_clock::time_point lastTime;
     int frameCount = 0;
-    float deltaTime = 0.0f;
     float fps = 0.0f;
 
     lastTime = std::chrono::steady_clock::now();
@@ -107,8 +108,15 @@ int main() {
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
+        auto currentTime = std::chrono::steady_clock::now();
+        float elapsedTime = std::chrono::duration_cast<std::chrono::duration<float>>(currentTime - lastTime).count();
+        deltaTime = elapsedTime;
+        lastTime = currentTime;
+        frameCount++;
+        fps = frameCount / elapsedTime;
+        frameCount = 0;
 
-        Scene::update(shader, window, screenWidth, screenHeight);
+        Scene::update(shader, window, screenWidth, screenHeight, deltaTime);
 
 		glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -124,14 +132,6 @@ int main() {
 
         renderGUI();
 
-        /*auto currentTime = std::chrono::steady_clock::now();
-        float elapsedTime = std::chrono::duration_cast<std::chrono::duration<float>>(currentTime - lastTime).count();
-        deltaTime = elapsedTime;
-        lastTime = currentTime;
-        frameCount++;
-        fps = frameCount / elapsedTime;
-        frameCount = 0;
-        std::cout << "FPS: " << fps << std::endl; // Or display on screen*/
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
