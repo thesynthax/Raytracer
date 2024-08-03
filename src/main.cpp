@@ -18,12 +18,17 @@ const std::string FRAG_PATH = (std::string)srcDir + "/fragment.glsl";
 
 double deltaTime = 0.0f;
 
-//GLuint screenTexture;
+GLuint screenTexture;
 
 void frameBufferSizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
     screenWidth = width;
     screenHeight = height;
+
+	glBindTexture(GL_TEXTURE_2D, screenTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, screenWidth, screenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
+
+    Scene::refresh = true;
 }
 
 void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
@@ -78,7 +83,8 @@ int main() {
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-    /*GLuint FBO;
+
+    GLuint FBO;
     glGenTextures(1, &screenTexture);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, screenTexture);
@@ -87,7 +93,11 @@ int main() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glGenFramebuffers(1, &FBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screenTexture, 0);*/
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screenTexture, 0);
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "ERROR: Framebuffer is not complete!" << std::endl;
+		return -1;
+	}
 
 
     std::chrono::steady_clock::time_point lastTime;
@@ -100,12 +110,12 @@ int main() {
     //Shader Initialization and main code loop
     Shader shader(VERT_PATH, FRAG_PATH);
     shader.use();
-    initGUI(window);
-    Scene::initialize(shader, screenWidth, screenHeight);
-    //initializeUniforms(shader);
-    //shader.setInt("u_screenTexture", 0);
+	shader.setInt("u_screenTexture", 0);
+    GUI::initGUI(window);
+    Scene::initialize(shader, screenWidth, screenHeight, screenTexture);
 
-    //int accumulatedPasses = 0;
+    int accumulatedPasses = 0;
+    bool directOutputPass;
 	while (!glfwWindowShouldClose(window))
 	{
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -119,34 +129,36 @@ int main() {
         fps = frameCount / elapsedTime;
         frameCount = 0;
 
-        Scene::update(shader, window, screenWidth, screenHeight, deltaTime);
+        Scene::refresh = Scene::mouseCameraMovement(window, screenWidth, screenHeight);
 
 		glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        //glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        //glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-        //shader.setBool("u_directOutputPass", false);
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 		//glDrawArrays(GL_TRIANGLES, 0, 6);
-		//accumulatedPasses += 1;
-		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		//shader.setInt("u_accumulatedPasses", accumulatedPasses);*/
-		//shader.setBool("u_directOutputPass", true);
-		//glDrawArrays(GL_TRIANGLES, 0, 6);
+		accumulatedPasses += 1;
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        renderGUI();
+        directOutputPass = accumulatedPasses <= 1;
+        if (accumulatedPasses > 100) accumulatedPasses = 100;
+        if (Scene::refresh) accumulatedPasses = 0;
 
+        GUI::renderGUI();
+
+        Scene::update(shader, window, screenWidth, screenHeight, directOutputPass, accumulatedPasses, deltaTime);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
 
-    deactivateGUI();
+    GUI::deactivateGUI();
 
     //Deletion of vertex data and deactivation of shader program
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
-    //glDeleteFramebuffers(1, &FBO);
-	//glDeleteTextures(1, &screenTexture);
+    glDeleteFramebuffers(1, &FBO);
+	glDeleteTextures(1, &screenTexture);
 
     shader.deactivate();
 

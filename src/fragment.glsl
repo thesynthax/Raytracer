@@ -33,10 +33,10 @@ uniform int u_maxBounceLimit;
 
 uniform int u_selectedObjectIndex;
 
-//uniform sampler2D u_screenTexture;
-//uniform int u_accumulatedPasses;
-//uniform bool u_directOutputPass;
-//uniform int u_framePasses;
+uniform sampler2D u_screenTexture;
+uniform int u_accumulatedPasses;
+uniform bool u_directOutputPass;
+uniform int u_framePasses;
 
 float deg2rad(float deg) {
     float rad = deg * PI / 180.0f;
@@ -464,8 +464,10 @@ void main() {
     Camera cam = getCamFromLookAt(u_fov, u_aspectRatio, u_camPos, u_camLookAt, u_upDir, u_rayOriginToScreenDistance);
 
     //Ray ray = getRayFromCam(cam, normalized_uv.x, normalized_uv.y);
-    /*if (u_directOutputPass) {
-        ray.origin.yz *= rot2D(-m.y);
+    //if (u_directOutputPass) {
+
+    if (true) {
+        /*ray.origin.yz *= rot2D(-m.y);
         ray.direction.yz *= rot2D(-m.y);
         ray.origin.xz *= rot2D(m.x);
         ray.direction.xz *= rot2D(m.x);*/
@@ -504,7 +506,14 @@ void main() {
         vec3 pixelColor = totalIncomingLight / u_raysPerPixel;
         
         FragColor = vec4(pixelColor, 1); 
-
         
-    //}
+    } else {
+        if (u_accumulatedPasses > 0) {
+            FragColor += texture(u_screenTexture, normalized_uv);
+            float d = float(u_accumulatedPasses);
+            FragColor.x /= d;
+            FragColor.y /= d;
+            FragColor.z /= d;
+        }
+    }
 }

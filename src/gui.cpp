@@ -3,8 +3,7 @@
 #include "imgui/imgui_impl_opengl3.h"
 #include <string>
 
-bool refresh;
-
+namespace GUI {
 void initGUI(GLFWwindow* window) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -41,7 +40,7 @@ void shaderFloatParameter(Shader shader, const char* name, const char* displayNa
     ImGui::SameLine();
     if (ImGui::InputFloat(std::string("##").append(name).c_str(), floatPtr)) {
         shader.setFloat(name, *floatPtr);
-        refresh = true;
+        Scene::refresh = true;
     }
 }
 void shaderSliderParameter(Shader shader, const char* name, const char* displayName, float* floatPtr) {
@@ -49,7 +48,7 @@ void shaderSliderParameter(Shader shader, const char* name, const char* displayN
     ImGui::SameLine();
     if (ImGui::SliderFloat(std::string("##").append(name).c_str(), floatPtr, 0.0f, 1.0f)) {
         shader.setFloat(name, *floatPtr);
-        refresh = true;
+        Scene::refresh = true;
     }
 }
 void shaderVecParameter(Shader shader, const char* name, const char* displayName, float* floatPtr) {
@@ -57,7 +56,7 @@ void shaderVecParameter(Shader shader, const char* name, const char* displayName
     ImGui::SameLine();
     if (ImGui::InputFloat3(std::string("##").append(name).c_str(), floatPtr)) {
         shader.setVec3(name, *(floatPtr), *(floatPtr + 1), *(floatPtr + 2));
-        refresh = true;
+        Scene::refresh = true;
     }
 }
 void shaderColorParameter(Shader shader, const char* name, const char* displayName, float* floatPtr) {
@@ -65,7 +64,7 @@ void shaderColorParameter(Shader shader, const char* name, const char* displayNa
     ImGui::SameLine();
     if (ImGui::ColorPicker3(name, floatPtr)) {
         shader.setVec3(name, *(floatPtr), *(floatPtr + 1), *(floatPtr + 2));
-        refresh = true;
+        Scene::refresh = true;
     }
 }
 */
@@ -80,19 +79,19 @@ void mainMenuUI() {
     ImGui::Text("Samples per pixel");
     ImGui::SameLine();
     if (ImGui::InputInt("##raysPerPixel", &Scene::raysPerPixel)) {
-        refresh = true;
+        Scene::refresh = true;
     }
 
     ImGui::Text("Light Bounce Limit");
     ImGui::SameLine();
     if (ImGui::InputInt("##maxBounceLimit", &Scene::maxBounceLimit)) {
-        refresh = true;
+        Scene::refresh = true;
     }
 
     ImGui::Text("Shadow Resolution");
     ImGui::SameLine();
     if (ImGui::InputInt("##shadowRays", &Scene::shadowRays)) {
-        refresh = true;
+        Scene::refresh = true;
     }
 
     ImGui::PopItemWidth();
@@ -106,32 +105,32 @@ void cameraSettingsUI() {
     ImGui::Text("Use Mouse for Camera");
     ImGui::SameLine();
     if (ImGui::Checkbox("##mouseCam", &Scene::useMouseForCamera)) {
-        refresh = true;
+        Scene::refresh = true;
     }
 
     if (!Scene::useMouseForCamera) {
         ImGui::Text("Camera to Screen Distance");
         ImGui::SameLine();
         if (ImGui::SliderFloat("##rayOriginToScreen", &Scene::rayOriginToScreenDistance, 0, 2)) {
-            refresh = true;
+            Scene::refresh = true;
         }
         
         ImGui::Text("Field of View");
         ImGui::SameLine();
         if (ImGui::SliderFloat("##fov", &Scene::fov, 0, 180)) {
-            refresh = true;
+            Scene::refresh = true;
         }
         
         ImGui::Text("Position");
         ImGui::SameLine();
         if (ImGui::SliderFloat3("##cameraPosition", &Scene::camPosFromSettings.x, -10, 10)) {
-            refresh = true;
+            Scene::refresh = true;
         }
 
         ImGui::Text("LookAtDirection");
         ImGui::SameLine();
         if (ImGui::SliderFloat3("##CameraLookAt", &Scene::camLookAtFromSettings.x, -10, 10)) {
-            refresh = true;
+            Scene::refresh = true;
         }
     }
 
@@ -152,24 +151,24 @@ void selectedObjectSettingsUI() {
         ImGui::Text(std::string("Center").c_str());
         ImGui::SameLine();
         if (ImGui::InputFloat3("##Center", &Scene::spheres[i].center.x)) {
-            refresh = true;
+            Scene::refresh = true;
         }
         ImGui::Text(std::string("Radius").c_str());
         ImGui::SameLine();
         if (ImGui::InputFloat("##Radius", &Scene::spheres[i].radius)) {
-            refresh = true;
+            Scene::refresh = true;
         }
         ImGui::Text(std::string("Material Type").c_str());
         ImGui::SameLine();
         if (ImGui::InputInt("##MatType", &Scene::spheres[i].mat.type)) {
-            refresh = true;
+            Scene::refresh = true;
         }
         switch(Scene::spheres[i].mat.type) {
             case (0): {
                 ImGui::Text(std::string("Color").c_str());
                 ImGui::SameLine();
                 if (ImGui::SliderFloat3("##color", &Scene::spheres[i].mat.color.x, 0, 1)) {
-                    refresh = true;
+                    Scene::refresh = true;
                 }
                 break;
             }
@@ -177,12 +176,12 @@ void selectedObjectSettingsUI() {
                 ImGui::Text(std::string("Color").c_str());
                 ImGui::SameLine();
                 if (ImGui::SliderFloat3("##color", &Scene::spheres[i].mat.color.x, 0, 1)) {
-                    refresh = true;
+                    Scene::refresh = true;
                 }
                 ImGui::Text(std::string("Fuzz").c_str());
                 ImGui::SameLine();
                 if (ImGui::SliderFloat("##fuzz", &Scene::spheres[i].mat.fuzz, 0, 1)) {
-                    refresh = true;
+                    Scene::refresh = true;
                 }
                 break;
             }
@@ -190,7 +189,7 @@ void selectedObjectSettingsUI() {
                 ImGui::Text(std::string("Refractive Index").c_str());
                 ImGui::SameLine();
                 if (ImGui::SliderFloat("##refIdx", &Scene::spheres[i].mat.refIndex, 1, 5)) {
-                    refresh = true;
+                    Scene::refresh = true;
                 }
                 break;
             }
@@ -198,12 +197,12 @@ void selectedObjectSettingsUI() {
                 ImGui::Text(std::string("Color").c_str());
                 ImGui::SameLine();
                 if (ImGui::SliderFloat3("##color", &Scene::spheres[i].mat.color.x, 0, 1)) {
-                    refresh = true;
+                    Scene::refresh = true;
                 }
                 ImGui::Text(std::string("Emission Strength").c_str());
                 ImGui::SameLine();
                 if (ImGui::SliderFloat("##emission", &Scene::spheres[i].mat.emissionStrength, 0, 20)) {
-                    refresh = true;
+                    Scene::refresh = true;
                 }
                 break;
             }
@@ -212,7 +211,7 @@ void selectedObjectSettingsUI() {
         ImGui::SameLine();
         if (ImGui::Button("##delete")) {
             Scene::spheres.erase(Scene::spheres.begin() + i);
-            refresh = true;
+            Scene::refresh = true;
         }
     } else {
         ImGui::Begin("Selected Object Seetings");
@@ -222,7 +221,7 @@ void selectedObjectSettingsUI() {
         ImGui::SameLine();
         if (ImGui::Button("##add")) {
             Scene::addNew();
-            refresh = true;
+            Scene::refresh = true;
         }
     }
 
@@ -236,4 +235,4 @@ void sceneSettingsUI() {
 
 }
 
-
+}

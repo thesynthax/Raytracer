@@ -38,6 +38,8 @@ extern glm::vec3 camLookAtFromSettings;
 
 extern int selectedObjectIndex;
 
+extern bool refresh;
+
 struct Camera {
     glm::vec3 position;
     glm::vec3 llc;
@@ -92,11 +94,11 @@ struct Light {
 extern std::vector<Sphere> spheres;
 extern std::vector<Light> lights;
 
-void initialize(Shader shader, int screenWidth, int screenHeight);
+void initialize(Shader shader, int screenWidth, int screenHeight, int scrTexture);
 void initializeUniforms(Shader shader);
-void update(Shader shader, GLFWwindow* window, int screenWidth, int screenHeight, double dTime);
+void update(Shader shader, GLFWwindow* window, int screenWidth, int screenHeight, bool directoutpass, int accpasses, double dTime);
 void updateUniforms(Shader shader, GLFWwindow* window, int scrWidth, int scrHeight);
-void mouseCameraMovement(GLFWwindow* window, int screenWidth, int screenHeight);
+bool mouseCameraMovement(GLFWwindow* window, int screenWidth, int screenHeight);
 void moveCamToSelectedSphere(glm::vec3 newPos, glm::vec3 newLookAt, float speed);
 glm::vec3 lerpVec(glm::vec3 a, glm::vec3 b, float t);
 Ray getRayToScreen(Camera cam, float u, float v);

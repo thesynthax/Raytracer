@@ -30,6 +30,11 @@ float camToObjDist;
 glm::vec3 currRot;
 float mouseSensitivity;
 
+int screenTexture;
+int accumulatedPasses;
+bool directOutputPass;
+bool refresh;
+
 Camera getCam(float fov, float aspectRatio, glm::vec3 lookFrom, glm::vec3 lookAt, glm::vec3 vup, float rayOriginToScreenDistance) {
     float viewportHeight = rayOriginToScreenDistance * tan(glm::radians(fov)/2.0f)* 2.0f;
     float viewportWidth = viewportHeight * aspectRatio;
@@ -90,7 +95,8 @@ glm::mat2 rot2d(float angle) {
     return glm::mat2(c, -s, s, c);
 }
 
-void initialize(Shader shader, int screenWidth, int screenHeight) {
+void initialize(Shader shader, int screenWidth, int screenHeight, int scrTexture) {
+    screenTexture = scrTexture;
     screenPixels = glm::vec2(screenWidth, screenHeight);
     aspectRatio = float(screenWidth)/float(screenHeight);
     fov = 70.0f;
@@ -109,6 +115,8 @@ void initialize(Shader shader, int screenWidth, int screenHeight) {
     camLookAtFromSettings = camLookAt;
     camToObjDist = 4;
     mouseSensitivity = 0.02f;
+    directOutputPass = true;
+    accumulatedPasses = 0;
 
     spheres.push_back(Sphere(glm::vec3(0), 1, Material(1, glm::vec3(1), 0.1f, 0, 0)));
     spheres.push_back(Sphere(glm::vec3(3,0,5), 1, Material(3, glm::vec3(0.2f, 0.8f, 0.2f), 0, 0, 6)));
@@ -134,6 +142,8 @@ void initializeUniforms(Shader shader) {
     shader.setInt("u_maxBounceLimit", maxBounceLimit);
     shader.setInt("u_shadowRays", shadowRays);
     shader.setInt("u_selectedObjectIndex", selectedObjectIndex);
+    shader.setBool("u_directOutputPass", directOutputPass);
+    shader.setBool("u_accumulatedPasses", accumulatedPasses);
 
     /*for (int i = 0; i < 9; i++) {
         shader.setVec3(std::string("u_spheres[").append(std::to_string(i)).append("].center").c_str(), rng(-2, 2), rng(-1, 1), rng(2, 6));
@@ -170,7 +180,7 @@ void initializeUniforms(Shader shader) {
 }
 
 double mouseX, mouseY;
-void update(Shader shader, GLFWwindow* window, int screenWidth, int screenHeight, double dTime) {
+void update(Shader shader, GLFWwindow* window, int screenWidth, int screenHeight, bool directoutpass, int accpasses, double dTime) {
     timeElapsed = glfwGetTime();
     glfwGetCursorPos(window, &mouseX, &mouseY);
     mousePos = glm::vec2(float(mouseX/screenWidth), float(mouseY/screenHeight));
@@ -180,26 +190,8 @@ void update(Shader shader, GLFWwindow* window, int screenWidth, int screenHeight
 
     deltaTime = dTime;
 
-    if (movingCamToSelectedObject) {
-        glm::vec3 finalPos;
-        glm::vec3 finalLookAt;
-
-        glm::vec3 dir;
-
-        if (selectedObjectIndex >= 0) {
-            finalLookAt = spheres[selectedObjectIndex].center;
-            dir = glm::normalize(camPos - finalLookAt);
-            finalPos = finalLookAt + dir * camToObjDist * spheres[selectedObjectIndex].radius;
-        }
-        else {
-            finalPos = camPosFromSettings;
-            finalLookAt = camLookAtFromSettings;
-        }
-
-        //moveCamToSelectedSphere(finalPos, finalLookAt, camMoveSpeed);
-    } else if (selectedObjectIndex == -1 && !movingCamToSelectedObject && (camPos != camPosFromSettings || camLookAt != camLookAtFromSettings)) {
-        //moveCamToSelectedSphere(camPosFromSettings, camLookAtFromSettings, camMoveSpeed);
-    } 
+    accumulatedPasses = accpasses;
+    directOutputPass = directoutpass;
 
     mouseCameraMovement(window, screenWidth, screenHeight);
 
@@ -217,6 +209,8 @@ void updateUniforms(Shader shader, GLFWwindow* window, int scrWidth, int scrHeig
     shader.setInt("u_maxBounceLimit", maxBounceLimit);
     shader.setInt("u_shadowRays", shadowRays);
     shader.setInt("u_selectedObjectIndex", selectedObjectIndex);
+    shader.setInt("u_accumulatedPasses", accumulatedPasses);
+    shader.setBool("u_directOutputPass", directOutputPass);
 
     for (int i = 0; i < spheres.size(); i++) {
         shader.setVec3(std::string("u_spheres[").append(std::to_string(i)).append("].center").c_str(), spheres[i].center);
@@ -239,40 +233,26 @@ void updateUniforms(Shader shader, GLFWwindow* window, int scrWidth, int scrHeig
 }
 
 float xRot, yRot;
-void mouseCameraMovement(GLFWwindow* window, int screenWidth, int screenHeight) {
+bool mouseCameraMovement(GLFWwindow* window, int screenWidth, int screenHeight) {
     Camera cam = getCam(fov, aspectRatio, camPos, camLookAt, upDir, rayOriginToScreenDistance);
+    glm::vec3 prevCamPos = camPos;
     bool moved = false;
 	
 	double mouseX;
 	double mouseY;
 	glfwGetCursorPos(window, &mouseX, &mouseY);
-	//glfwSetCursorPos(window, screenWidth / 2.0, screenHeight / 2.0);
 
 	float xOffset = (float)(mouseX - screenWidth/2.0);
 	float yOffset = (float)(mouseY - screenHeight/2.0);
 
-	if (xOffset != 0.0F || yOffset != 0.0F) moved = true;
 
     xRot = xOffset/screenWidth * mouseSensitivity;
-	yRot = yOffset/screenHeight * mouseSensitivity;
+	yRot = -yOffset/screenHeight * mouseSensitivity;
 
 	if (yRot > 1.5707F)
 		yRot = 1.5707F;
 	if (yRot < -1.5707F)
 		yRot = -1.5707F;
-
-    //glm::yz(camPos) = rot2d(yRot) * glm::yz(camPos);
-    //glm::xz(camPos) = rot2d(xRot) * glm::xz(camPos);
-    //std::cout << glm::to_string(camYZ) << std::endl;
-
-    //float centerMouseX = ((mouseX/screenWidth) - 0.5f) * 2;
-    //float centerMouseY = ((1-mouseY/screenHeight) - 0.5f) * 2;
-
-    /*glm::vec2 camYZ = glm::vec2(camPos.y, camPos.z);
-    camYZ = rot2d(centerMouseY * mouseSensitivity) * camYZ;
-    glm::vec2 camXZ = glm::vec2(camPos.x, camYZ.y);
-    camXZ = rot2d(centerMouseX * mouseSensitivity) * camXZ;
-    camPos = glm::vec3(camXZ.x, camYZ.x, camXZ.y);*/
 
     glm::vec2 camYZ = glm::vec2(camPos.y, camPos.z);
     camYZ = rot2d(yRot) * camYZ;
@@ -280,27 +260,29 @@ void mouseCameraMovement(GLFWwindow* window, int screenWidth, int screenHeight) 
     camXZ = rot2d(xRot) * camXZ;
     camPos = glm::vec3(camXZ.x, camYZ.x, camXZ.y);
 
-    /*glm::vec2 camXZ = glm::vec2(camPos.x, camPos.z);
-    camXZ = rot2d(xRot) * camXZ;
-    camPos = glm::vec3(camXZ.x, camPos.y, camXZ.y);*/
+    if (movingCamToSelectedObject) {
+        glm::vec3 finalPos;
+        glm::vec3 finalLookAt;
 
-    /*cam.forward.x = -sin(xRot) * cos(yRot);
-    cam.forward.y = -sin(yRot);
-    cam.forward.z = -cos(xRot) * cos(yRot);
-    cam.right.x = -cos(xRot);
-    cam.right.y = 0.0;
-    cam.right.z = sin(xRot);
-    cam.up = glm::cross(cam.forward, cam.right);
-    cam.forward = glm::normalize(cam.forward);
-    cam.right = glm::normalize(cam.forward);
-    cam.up = glm::normalize(cam.forward);*/
+        glm::vec3 dir;
 
-    if (selectedObjectIndex >= 0) {
-        Sphere sphere = spheres[selectedObjectIndex];
-        //camPos = lerpVec(camPos, camLookAt + cam.backward * camToObjDist * sphere.radius, camMoveSpeed * deltaTime);
-    } else {
-        //camPos = lerpVec(camPos, camLookAt + cam.backward * camToObjDist, camMoveSpeed * deltaTime);
+        if (selectedObjectIndex >= 0) {
+            finalLookAt = spheres[selectedObjectIndex].center;
+            dir = glm::normalize(camPos - finalLookAt);
+            finalPos = finalLookAt + dir * camToObjDist * spheres[selectedObjectIndex].radius;
+        }
+        else {
+            finalPos = camPosFromSettings;
+            finalLookAt = camLookAtFromSettings;
+        }
+
+        moveCamToSelectedSphere(finalPos, finalLookAt, camMoveSpeed);
+    } else if (selectedObjectIndex == -1 && !movingCamToSelectedObject && (camPos != camPosFromSettings || camLookAt != camLookAtFromSettings)) {
+        moveCamToSelectedSphere(camPosFromSettings, camLookAtFromSettings, camMoveSpeed);
     }
+
+    moved = glm::length(prevCamPos - camPos) > 0.01;
+    return moved;
 }
 
 void moveCamToSelectedSphere(glm::vec3 newPos, glm::vec3 newLookAt, float speed) {

@@ -3,7 +3,7 @@
 #include "imgui/imgui_impl_opengl3.h"
 #include "scene.h"
 
-
+namespace GUI {
 void initGUI(GLFWwindow* window);
 void renderGUI();
 void deactivateGUI();
@@ -15,3 +15,4 @@ void shaderFloatParameter(Shader shader, const char* name, const char* displayNa
 void shaderSliderParameter(Shader shader, const char* name, const char* displayName, float* floatPtr);
 void shaderVecParameter(Shader shader, const char* name, const char* displayName, float* floatPtr);
 void shaderColorParameter(Shader shader, const char* name, const char* displayName, float* floatPtr);
+}
