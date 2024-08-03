@@ -1,3 +1,6 @@
+#define GLM_ENABLE_EXPERIMENTAL
+#define GLM_SWIZZLE_XYZW
+#define GLM_SWIZZLE_STQP
 #include "shader.h"
 #include <string>
 #include <cmath>
@@ -7,6 +10,10 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "glm/common.hpp"
+#include "glm/ext/matrix_float2x2.hpp"
+#include "glm/gtx/string_cast.hpp"
+#include "glm/gtx/vec_swizzle.hpp"
 
 namespace Scene {
 
@@ -36,7 +43,7 @@ struct Camera {
     glm::vec3 llc;
     glm::vec3 horizontal;
     glm::vec3 vertical;
-    glm::vec3 backward;
+    glm::vec3 forward;
     glm::vec3 right;
     glm::vec3 up;
 };
@@ -89,6 +96,7 @@ void initialize(Shader shader, int screenWidth, int screenHeight);
 void initializeUniforms(Shader shader);
 void update(Shader shader, GLFWwindow* window, int screenWidth, int screenHeight, double dTime);
 void updateUniforms(Shader shader, GLFWwindow* window, int scrWidth, int scrHeight);
+void mouseCameraMovement(GLFWwindow* window, int screenWidth, int screenHeight);
 void moveCamToSelectedSphere(glm::vec3 newPos, glm::vec3 newLookAt, float speed);
 glm::vec3 lerpVec(glm::vec3 a, glm::vec3 b, float t);
 Ray getRayToScreen(Camera cam, float u, float v);

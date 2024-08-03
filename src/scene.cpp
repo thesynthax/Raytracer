@@ -1,13 +1,5 @@
-#include "glm/ext/quaternion_geometric.hpp"
-#include <string>
-#define GLM_ENABLE_EXPERIMENTAL
-
 #include "scene.h"
-#include "glm/common.hpp"
-#include "glm/ext/matrix_float2x2.hpp"
-#include "glm/gtx/string_cast.hpp"
-#include <GLFW/glfw3.h>
-#include <cmath>
+#include "glm/ext/quaternion_geometric.hpp"
 
 namespace Scene {
 
@@ -35,20 +27,22 @@ int selectedObjectIndex;
 bool movingCamToSelectedObject;
 float camMoveSpeed;
 float camToObjDist;
+glm::vec3 currRot;
+float mouseSensitivity;
 
 Camera getCam(float fov, float aspectRatio, glm::vec3 lookFrom, glm::vec3 lookAt, glm::vec3 vup, float rayOriginToScreenDistance) {
     float viewportHeight = rayOriginToScreenDistance * tan(glm::radians(fov)/2.0f)* 2.0f;
     float viewportWidth = viewportHeight * aspectRatio;
 
     Camera cam;
-    cam.backward = glm::normalize(lookFrom - lookAt);
-    cam.right = glm::normalize(cross(vup, cam.backward));
-    cam.up = glm::cross(cam.backward, cam.right);
+    cam.forward = glm::normalize(lookAt - lookFrom);
+    cam.right = glm::normalize(cross(cam.forward, vup));
+    cam.up = glm::cross(cam.right, cam.forward);
 
     cam.position = lookFrom;
     cam.horizontal = cam.right * viewportWidth;
     cam.vertical = cam.up * viewportHeight;
-    cam.llc = cam.position - cam.horizontal / 2.0f - cam.vertical / 2.0f - cam.backward;
+    cam.llc = cam.position - cam.horizontal / 2.0f - cam.vertical / 2.0f + cam.forward;
     return cam;
 }
 
@@ -114,12 +108,12 @@ void initialize(Shader shader, int screenWidth, int screenHeight) {
     camPosFromSettings = camPos;
     camLookAtFromSettings = camLookAt;
     camToObjDist = 4;
+    mouseSensitivity = 0.02f;
 
     spheres.push_back(Sphere(glm::vec3(0), 1, Material(1, glm::vec3(1), 0.1f, 0, 0)));
     spheres.push_back(Sphere(glm::vec3(3,0,5), 1, Material(3, glm::vec3(0.2f, 0.8f, 0.2f), 0, 0, 6)));
     spheres.push_back(Sphere(glm::vec3(-3,0,5), 1, Material(0, glm::vec3(0.8f, 0.2f, 0.2f), 0, 0, 0)));
     spheres.push_back(Sphere(glm::vec3(0, -21, 5), 20, Material(0, glm::vec3(0.4f, 0.1f, 0.5f), 0, 0, 0)));
-
 
     lights.push_back(Light(0, glm::vec3(0), glm::vec3(0), glm::vec3(1), 9, true));
     lights.push_back(Light(1, glm::vec3(0), glm::vec3(0), glm::vec3(1), 1, false));
@@ -202,16 +196,12 @@ void update(Shader shader, GLFWwindow* window, int screenWidth, int screenHeight
             finalLookAt = camLookAtFromSettings;
         }
 
-        moveCamToSelectedSphere(finalPos, finalLookAt, camMoveSpeed);
+        //moveCamToSelectedSphere(finalPos, finalLookAt, camMoveSpeed);
     } else if (selectedObjectIndex == -1 && !movingCamToSelectedObject && (camPos != camPosFromSettings || camLookAt != camLookAtFromSettings)) {
-        moveCamToSelectedSphere(camPosFromSettings, camLookAtFromSettings, camMoveSpeed);
+        //moveCamToSelectedSphere(camPosFromSettings, camLookAtFromSettings, camMoveSpeed);
     } 
 
-    /*glm::vec2 camYZ = glm::vec2(camPos.y, camPos.z);
-    camYZ = rot2d(mouseY/200) * camYZ;
-    glm::vec2 camXZ = glm::vec2(camPos.x, camPos.z);
-    camXZ = rot2d(mouseX/200) * camXZ;
-    camPos = glm::vec3(camXZ.x, camYZ.y, camPos.z);*/
+    mouseCameraMovement(window, screenWidth, screenHeight);
 
     updateUniforms(shader, window, screenWidth, screenHeight);
 }
@@ -245,6 +235,71 @@ void updateUniforms(Shader shader, GLFWwindow* window, int scrWidth, int scrHeig
         shader.setVec3(std::string("u_lights[").append(std::to_string(i)).append("].color").c_str(), lights[i].color);
         shader.setFloat(std::string("u_lights[").append(std::to_string(i)).append("].maxIntensity").c_str(), lights[i].maxIntensity);
         shader.setBool(std::string("u_lights[").append(std::to_string(i)).append("].softShadows").c_str(), lights[i].softShadows);
+    }
+}
+
+float xRot, yRot;
+void mouseCameraMovement(GLFWwindow* window, int screenWidth, int screenHeight) {
+    Camera cam = getCam(fov, aspectRatio, camPos, camLookAt, upDir, rayOriginToScreenDistance);
+    bool moved = false;
+	
+	double mouseX;
+	double mouseY;
+	glfwGetCursorPos(window, &mouseX, &mouseY);
+	//glfwSetCursorPos(window, screenWidth / 2.0, screenHeight / 2.0);
+
+	float xOffset = (float)(mouseX - screenWidth/2.0);
+	float yOffset = (float)(mouseY - screenHeight/2.0);
+
+	if (xOffset != 0.0F || yOffset != 0.0F) moved = true;
+
+    xRot = xOffset/screenWidth * mouseSensitivity;
+	yRot = yOffset/screenHeight * mouseSensitivity;
+
+	if (yRot > 1.5707F)
+		yRot = 1.5707F;
+	if (yRot < -1.5707F)
+		yRot = -1.5707F;
+
+    //glm::yz(camPos) = rot2d(yRot) * glm::yz(camPos);
+    //glm::xz(camPos) = rot2d(xRot) * glm::xz(camPos);
+    //std::cout << glm::to_string(camYZ) << std::endl;
+
+    //float centerMouseX = ((mouseX/screenWidth) - 0.5f) * 2;
+    //float centerMouseY = ((1-mouseY/screenHeight) - 0.5f) * 2;
+
+    /*glm::vec2 camYZ = glm::vec2(camPos.y, camPos.z);
+    camYZ = rot2d(centerMouseY * mouseSensitivity) * camYZ;
+    glm::vec2 camXZ = glm::vec2(camPos.x, camYZ.y);
+    camXZ = rot2d(centerMouseX * mouseSensitivity) * camXZ;
+    camPos = glm::vec3(camXZ.x, camYZ.x, camXZ.y);*/
+
+    glm::vec2 camYZ = glm::vec2(camPos.y, camPos.z);
+    camYZ = rot2d(yRot) * camYZ;
+    glm::vec2 camXZ = glm::vec2(camPos.x, camYZ.y);
+    camXZ = rot2d(xRot) * camXZ;
+    camPos = glm::vec3(camXZ.x, camYZ.x, camXZ.y);
+
+    /*glm::vec2 camXZ = glm::vec2(camPos.x, camPos.z);
+    camXZ = rot2d(xRot) * camXZ;
+    camPos = glm::vec3(camXZ.x, camPos.y, camXZ.y);*/
+
+    /*cam.forward.x = -sin(xRot) * cos(yRot);
+    cam.forward.y = -sin(yRot);
+    cam.forward.z = -cos(xRot) * cos(yRot);
+    cam.right.x = -cos(xRot);
+    cam.right.y = 0.0;
+    cam.right.z = sin(xRot);
+    cam.up = glm::cross(cam.forward, cam.right);
+    cam.forward = glm::normalize(cam.forward);
+    cam.right = glm::normalize(cam.forward);
+    cam.up = glm::normalize(cam.forward);*/
+
+    if (selectedObjectIndex >= 0) {
+        Sphere sphere = spheres[selectedObjectIndex];
+        //camPos = lerpVec(camPos, camLookAt + cam.backward * camToObjDist * sphere.radius, camMoveSpeed * deltaTime);
+    } else {
+        //camPos = lerpVec(camPos, camLookAt + cam.backward * camToObjDist, camMoveSpeed * deltaTime);
     }
 }
 
