@@ -14,11 +14,10 @@
 - Point and Directional Light added with soft and hard shadows
 - Anti-aliasing
 - GUI
+- Interaction using mouse
+- Camera Movement
 
 ### To be accomplished:
-- Camera movement, projection math
-- GUI completion
-- Interaction using mouse
 - Progressive Rendering
 - Bloom
 - Mesh rendering using triangles
