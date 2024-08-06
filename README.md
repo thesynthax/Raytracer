@@ -2,6 +2,9 @@
 This is a re-write of my old [raytracer](https://github.com/thesynthax/raytracer-legacy), which used the CPU for rendering scenes and did not work in real-time.
 This new raytracer works in real-time by using a fragment shader to compute raytracing in parallel using the GPU. The GUI is implemented using Dear ImGui in C++, which provides options to add, remove, and change settings of the current objects that are being rendered.
 
+![](https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExZWt4dGRraDV5enp2cWNxMm55aHg5ZXExczFzaHZ4ZXZkbHVjbXZjeiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/vtTEQNsPutZq1hf4Vr/giphy.gif)
+![](https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcXNjemhudndoc2hvamhhYjB0cGtmZHcxZHlpMzgyenc3amljbng0cyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/rTU4rTw3FJGBD8UXpf/giphy.gif)
+
 ### To build and run:
 - `git clone https://github.com//thesynthax/raytracer`
 - Build and run with `./run`
